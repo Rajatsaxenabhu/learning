@@ -32,7 +32,7 @@ def calculate_area(payload:area_schame)->float:
     source_crs = payload.crs
     target_crs = EPSGCode.UTM_ZONE_44N
     transformer = Transformer.from_crs(
-        CRS.from_user_input(source_crs.value),
+        CRS.from_user_input(source_crs),
         CRS.from_user_input(target_crs.value),
         always_xy=True,
     )
