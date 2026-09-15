@@ -6,7 +6,7 @@ from config import GIS_STDIO_SERVER
 
 async def test_calculate_area(client: MCPClient) -> None:
     result = await client.execute_tool(
-        "calculate_area",
+        "calculate_area_tool",
         {
             "payload": {
                 "wkt_geometry": (
@@ -50,10 +50,17 @@ async def main() -> None:
         print("Inside manager context:")
         print("GIS connected:", gis.is_connected)
 
-        await test_calculate_area(gis)
+        tools = await gis.list_tools()
 
-        await get_resource(gis)
+        print("\nTOOLS:")
+        print([tool.name for tool in tools.tools])
 
+        resources = await gis.list_resources()
+
+        print("\nRESOURCES:")
+        print(
+            [resource.name for resource in resources.resources]
+        )
     print("After manager context:")
     print("GIS connected:", gis.is_connected)
 

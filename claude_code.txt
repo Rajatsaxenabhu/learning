@@ -1,0 +1,58 @@
+GIS MCP Server
+│
+├── Vector
+│   │
+│   ├── Geometry
+│   │   ├── calculate_area
+│   │   ├── calculate_length
+│   │   ├── calculate_centroid
+│   │   ├── buffer_geometry
+│   │   ├── intersection
+│   │   ├── difference
+│   │   ├── union_geometries
+│   │   ├── simplify_geometry
+│   │   ├── convex_hull
+│   │   ├── bounds
+│   │   └── validate_geometry
+│   │
+│   ├── Projection
+│   │   ├── transform_geometry
+│   │   ├── get_crs_info
+│   │   ├── is_projected_crs
+│   │   └── calculate_utm_zone
+│   │
+│   └── Vector Data
+│       ├── get_vector_metadata
+│       ├── list_vector_layers
+│       ├── get_vector_schema
+│       ├── get_feature_count
+│       ├── filter_features
+│       ├── spatial_query
+│       └── features_within_distance
+│
+└── Raster
+    │
+    ├── Metadata
+    │   ├── get_raster_metadata
+    │   ├── get_raster_crs
+    │   ├── get_raster_bounds
+    │   ├── get_raster_resolution
+    │   └── get_raster_band_info
+    │
+    ├── Statistics
+    │   ├── calculate_raster_statistics
+    │   ├── calculate_percentiles
+    │   ├── get_unique_values
+    │   ├── calculate_histogram
+    │   ├── get_pixel_value
+    │   └── calculate_nodata_percentage
+    │
+    └── Processing
+        ├── clip_raster
+        ├── mask_raster
+        ├── reproject_raster
+        ├── resample_raster
+        ├── merge_rasters
+        ├── crop_raster
+        ├── rasterize_vector
+        └── polygonize_raster

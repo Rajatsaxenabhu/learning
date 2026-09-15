@@ -14,7 +14,7 @@ GIS_STDIO_SERVER = MCPServerConfig(
     name="gis_local",
     transport=StdioServerParameters(
         command="uv",
-        args=["run", "/home/rajat-saxena/Documents/personal/learning/gisproject/server/stdiomain.py"],
+        args=["run", "/home/rajat-saxena/Documents/personal/learning/gisproject/server/gismcp/stdiomain.py"],
     ),
 )
 
