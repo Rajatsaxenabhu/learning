@@ -1,9 +1,7 @@
 import anyio
 
-from client import MCPClient
-
-
-SERVER_URL = "http://localhost:8000/mcp"
+from manager import MCPClientManager, MCPClient
+from config import GIS_STDIO_SERVER
 
 
 async def test_calculate_area(client: MCPClient) -> None:
@@ -15,7 +13,6 @@ async def test_calculate_area(client: MCPClient) -> None:
                     "POLYGON ((82 25, "
                     "82.01 25, "
                     "82.01 25.01, "
-                    "82 25.01, "
                     "82 25))"
                 ),
                 "crs": "EPSG:4326",
@@ -29,29 +26,36 @@ async def test_calculate_area(client: MCPClient) -> None:
 
 async def get_resource(client: MCPClient) -> None:
     resource = await client.get_resource(
-    "gisprojection://available"
+        "gisprojection://available"
     )
 
-    print(resource.uri)
-    print(resource.name)
-    print(resource.description)
+    print("URI:", resource.uri)
+    print("Name:", resource.name)
+    print("Description:", resource.description)
+
+    result = await client.read_resource(
+        str(resource.uri)
+    )
+
+    print("Resource data:")
+    print(result)
 
 
 async def main() -> None:
-    client = MCPClient(SERVER_URL)
 
-    print("Before connection:")
-    print(client.is_connected)
+    async with MCPClientManager([GIS_STDIO_SERVER]) as manager:
 
-    async with client:
-        print("Inside context:")
-        print(client.is_connected)
+        gis = manager.get("gis_local")
 
-        # await test_calculate_area(client)
-        await get_resource(client)
+        print("Inside manager context:")
+        print("GIS connected:", gis.is_connected)
 
-    print("After context:")
-    print(client.is_connected)
+        await test_calculate_area(gis)
+
+        await get_resource(gis)
+
+    print("After manager context:")
+    print("GIS connected:", gis.is_connected)
 
 
 if __name__ == "__main__":

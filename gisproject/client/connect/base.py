@@ -1,11 +1,12 @@
 from mcp import Client
 from mcp.types import ListResourcesResult, ListToolsResult
 from error import MCPToolNotFoundError,MCPResourceNotFoundError,MCPToolError,MCPResourceError,MCPConnectionError,MCPClientError
+from typing import Any
 
 class MCPClient:
 
-    def __init__(self, server_url: str):
-        self.server_url = server_url
+    def __init__(self, transport: Any):
+        self.transport = transport
 
         self._client: Client | None = None
 
@@ -14,7 +15,7 @@ class MCPClient:
 
 
     async def __aenter__(self):
-        client = Client(self.server_url)
+        client = Client(self.transport)
 
         try:
             await client.__aenter__()
@@ -24,7 +25,7 @@ class MCPClient:
 
             raise MCPConnectionError(
                 f"Failed to connect to MCP server: "
-                f"{self.server_url}"
+                f"{self.transport}"
             ) from exc
 
         self._client = client
@@ -122,7 +123,7 @@ class MCPClient:
         await self.get_tool(name)
 
         try:
-            result = await self.mcp_client.call_tool(
+            result = await self.call_tool(
                 name,
                 arguments,
             )
@@ -183,3 +184,4 @@ class MCPClient:
             raise MCPResourceError(
                 f"Failed to read MCP resource '{uri}'."
             ) from exc
+
