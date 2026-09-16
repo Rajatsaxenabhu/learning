@@ -1,7 +1,7 @@
 import anyio
 
-from manager import MCPClientManager, MCPClient
-from config import GIS_STDIO_SERVER
+from client.manager import MCPClientManager, MCPClient
+from client.config import GIS_STDIO_SERVER
 
 
 async def test_calculate_area(client: MCPClient) -> None:

@@ -1,6 +1,6 @@
 from mcp import Client
 from mcp.types import ListResourcesResult, ListToolsResult
-from error import MCPToolNotFoundError,MCPResourceNotFoundError,MCPToolError,MCPResourceError,MCPConnectionError,MCPClientError
+from client.error import MCPToolNotFoundError,MCPResourceNotFoundError,MCPToolError,MCPResourceError,MCPConnectionError,MCPClientError
 from typing import Any
 
 class MCPClient:

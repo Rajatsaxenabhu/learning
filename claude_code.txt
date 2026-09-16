@@ -56,3 +56,33 @@ GIS MCP Server
         ├── crop_raster
         ├── rasterize_vector
         └── polygonize_raster
+
+
+
+┌─────────────────────────────────────────┐
+│ 8.1  Local Qwen3 4B + Ollama            │ ✅
+│                                         │
+│ 8.2  Python LLMClient                   │ ✅
+│                                         │
+│ 8.3  Qwen tool calling                  │ ✅
+│                                         │
+│ 8.4  MCP → LLM tool adapter             │ ✅
+│                                         │
+│ 8.5  Execute Qwen tool via MCP          │ ✅
+│                                         │
+│ 8.6  MCP result → Qwen → answer         │ ✅
+│                                         │
+│ 8.7  Reusable Agent Loop                │ ← NOW
+│                                         │
+│ 8.8  Multi-step GIS reasoning           │
+│                                         │
+│ 8.9  MCP Resources in Agent             │
+│                                         │
+│ 8.10 MCP Prompts in Agent               │
+│                                         │
+│ 8.11 Conversation / Agent State         │
+│                                         │
+│ 8.12 Streaming Agent Output             │
+│                                         │
+│ 8.13 Complete GIS AI Demo               │
+└─────────────────────────────────────────┘

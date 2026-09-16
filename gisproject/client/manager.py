@@ -1,5 +1,5 @@
-from connect.base import MCPClient
-from config import MCPServerConfig
+from client.connect.base import MCPClient
+from client.config import MCPServerConfig
 
 
 class MCPClientManager:
