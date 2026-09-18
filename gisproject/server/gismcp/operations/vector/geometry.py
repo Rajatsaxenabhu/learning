@@ -2,7 +2,7 @@ from shapely.ops import unary_union
 from shapely.validation import explain_validity
 from shapely import wkt
 
-from operations.vector.common import load_geometry, reproject
+from operations.vector.common import load_geometry, reproject, dump_wkt
 from schemas.vector.geometry import (
     CalculateAreaInput,
     CalculateAreaOutput,
@@ -76,7 +76,7 @@ def calculate_centroid(
     geometry = load_geometry(payload.wkt_geometry)
 
     return CalculateCentroidOutput(
-        wkt_centroid=geometry.centroid.wkt,
+        wkt_centroid=dump_wkt(geometry.centroid, payload.crs),
         crs=payload.crs,
     )
 
@@ -93,9 +93,15 @@ def buffer_geometry(
         TARGET_CRS,
     )
 
-    buffered_geometry = projected_geometry.buffer(
-        payload.distance_m
-    )
+    try:
+        buffered_geometry = projected_geometry.buffer(
+            payload.distance_m
+        )
+
+    except Exception as exc:
+        raise ValueError(
+            f"Failed to buffer geometry: {exc}"
+        ) from exc
 
     result_geometry = reproject(
         buffered_geometry,
@@ -104,7 +110,7 @@ def buffer_geometry(
     )
 
     return BufferGeometryOutput(
-        wkt_geometry=result_geometry.wkt,
+        wkt_geometry=dump_wkt(result_geometry, payload.crs),
         crs=payload.crs,
         distance_m=payload.distance_m,
     )
@@ -117,10 +123,16 @@ def intersection(
     geometry_a = load_geometry(payload.wkt_geometry_a)
     geometry_b = load_geometry(payload.wkt_geometry_b)
 
-    result_geometry = geometry_a.intersection(geometry_b)
+    try:
+        result_geometry = geometry_a.intersection(geometry_b)
+
+    except Exception as exc:
+        raise ValueError(
+            f"Failed to compute intersection: {exc}"
+        ) from exc
 
     return IntersectionOutput(
-        wkt_geometry=result_geometry.wkt,
+        wkt_geometry=dump_wkt(result_geometry, payload.crs),
         crs=payload.crs,
         is_empty=result_geometry.is_empty,
     )
@@ -133,10 +145,16 @@ def difference(
     geometry_a = load_geometry(payload.wkt_geometry_a)
     geometry_b = load_geometry(payload.wkt_geometry_b)
 
-    result_geometry = geometry_a.difference(geometry_b)
+    try:
+        result_geometry = geometry_a.difference(geometry_b)
+
+    except Exception as exc:
+        raise ValueError(
+            f"Failed to compute difference: {exc}"
+        ) from exc
 
     return DifferenceOutput(
-        wkt_geometry=result_geometry.wkt,
+        wkt_geometry=dump_wkt(result_geometry, payload.crs),
         crs=payload.crs,
         is_empty=result_geometry.is_empty,
     )
@@ -156,10 +174,16 @@ def union_geometries(
         for wkt_geometry in payload.wkt_geometries
     ]
 
-    result_geometry = unary_union(geometries)
+    try:
+        result_geometry = unary_union(geometries)
+
+    except Exception as exc:
+        raise ValueError(
+            f"Failed to compute union: {exc}"
+        ) from exc
 
     return UnionGeometriesOutput(
-        wkt_geometry=result_geometry.wkt,
+        wkt_geometry=dump_wkt(result_geometry, payload.crs),
         crs=payload.crs,
     )
 
@@ -176,10 +200,16 @@ def simplify_geometry(
         TARGET_CRS,
     )
 
-    simplified_geometry = projected_geometry.simplify(
-        payload.tolerance_m,
-        preserve_topology=payload.preserve_topology,
-    )
+    try:
+        simplified_geometry = projected_geometry.simplify(
+            payload.tolerance_m,
+            preserve_topology=payload.preserve_topology,
+        )
+
+    except Exception as exc:
+        raise ValueError(
+            f"Failed to simplify geometry: {exc}"
+        ) from exc
 
     result_geometry = reproject(
         simplified_geometry,
@@ -188,7 +218,7 @@ def simplify_geometry(
     )
 
     return SimplifyGeometryOutput(
-        wkt_geometry=result_geometry.wkt,
+        wkt_geometry=dump_wkt(result_geometry, payload.crs),
         crs=payload.crs,
         tolerance_m=payload.tolerance_m,
     )
@@ -201,7 +231,7 @@ def convex_hull(
     geometry = load_geometry(payload.wkt_geometry)
 
     return ConvexHullOutput(
-        wkt_geometry=geometry.convex_hull.wkt,
+        wkt_geometry=dump_wkt(geometry.convex_hull, payload.crs),
         crs=payload.crs,
     )
 
@@ -227,7 +257,13 @@ def validate_geometry(
     payload: ValidateGeometryInput,
 ) -> ValidateGeometryOutput:
 
-    geometry = wkt.loads(payload.wkt_geometry)
+    try:
+        geometry = wkt.loads(payload.wkt_geometry)
+
+    except Exception as exc:
+        raise ValueError(
+            f"Invalid WKT geometry: {exc}"
+        ) from exc
 
     is_valid = geometry.is_valid
 

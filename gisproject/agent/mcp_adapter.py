@@ -1,11 +1,9 @@
 from mcp.types import ListToolsResult
 
 
-def mcp_tools_to_ollama_tools(
+def mcp_tools_to_llm_tools(
     mcp_tools: ListToolsResult,
 ) -> list[dict]:
-    """Convert MCP tool definitions to Ollama tool definitions."""
-
     ollama_tools = []
 
     for tool in mcp_tools.tools:

@@ -1,36 +1,40 @@
 from collections.abc import AsyncGenerator
 from typing import Any
 
-from ollama import AsyncClient
+from openai import AsyncOpenAI
 
 
 class LLMClient:
 
     def __init__(
         self,
-         model: str = "qwen3:14b",
-        host: str = "http://localhost:11434",
+        model: str = "qwen3-8b",
+        host: str = "http://localhost:8010/v1",
     ):
         self.model = model
-        self._client = AsyncClient(host=host)
+        self._client = AsyncOpenAI(base_url=host, api_key="EMPTY")
 
     async def chat_once(
         self,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
+        max_tokens: int = 4096,
     ) -> Any:
 
         try:
-            return await self._client.chat(
+            response = await self._client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 tools=tools,
+                max_tokens=max_tokens,
                 stream=False,
             )
 
+            return response.choices[0]
+
         except Exception as exc:
             raise RuntimeError(
-                f"Failed to communicate with Ollama "
+                f"Failed to communicate with vLLM "
                 f"using model '{self.model}'."
             ) from exc
 
@@ -38,13 +42,15 @@ class LLMClient:
         self,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
+        max_tokens: int = 4096,
     ) -> AsyncGenerator[Any, None]:
 
         try:
-            stream = await self._client.chat(
+            stream = await self._client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 tools=tools,
+                max_tokens=max_tokens,
                 stream=True,
             )
 
@@ -53,6 +59,6 @@ class LLMClient:
 
         except Exception as exc:
             raise RuntimeError(
-                f"Failed to communicate with Ollama "
+                f"Failed to communicate with vLLM "
                 f"using model '{self.model}'."
             ) from exc

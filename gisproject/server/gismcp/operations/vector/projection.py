@@ -2,7 +2,7 @@ import math
 
 from pyproj import CRS
 
-from operations.vector.common import load_geometry, reproject
+from operations.vector.common import load_geometry, reproject, dump_wkt
 from schemas.vector.projection import (
     TransformGeometryInput,
     TransformGeometryOutput,
@@ -30,7 +30,7 @@ def transform_geometry(
     )
 
     return TransformGeometryOutput(
-        wkt_geometry=result_geometry.wkt,
+        wkt_geometry=dump_wkt(result_geometry, payload.target_crs),
         source_crs=payload.source_crs,
         target_crs=payload.target_crs,
     )
@@ -40,7 +40,13 @@ def get_crs_info(
     payload: GetCrsInfoInput,
 ) -> GetCrsInfoOutput:
 
-    crs = CRS.from_user_input(payload.crs)
+    try:
+        crs = CRS.from_user_input(payload.crs)
+
+    except Exception as exc:
+        raise ValueError(
+            f"Invalid CRS '{payload.crs}': {exc}"
+        ) from exc
 
     return GetCrsInfoOutput(
         crs=payload.crs,
@@ -55,7 +61,13 @@ def is_projected_crs(
     payload: IsProjectedCrsInput,
 ) -> IsProjectedCrsOutput:
 
-    crs = CRS.from_user_input(payload.crs)
+    try:
+        crs = CRS.from_user_input(payload.crs)
+
+    except Exception as exc:
+        raise ValueError(
+            f"Invalid CRS '{payload.crs}': {exc}"
+        ) from exc
 
     return IsProjectedCrsOutput(
         crs=payload.crs,
