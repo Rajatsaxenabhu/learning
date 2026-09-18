@@ -3,7 +3,7 @@ import json
 import re
 import uuid
 from agent.planner import Planner
-from agent.llm import LLMClient
+from agent.llms import LLMClient
 from agent.tool_executor import execute_mcp_tool
 from client.connect.base import MCPClient
 from agent.state import AgentState

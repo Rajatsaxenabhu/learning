@@ -3,7 +3,7 @@ import json
 
 from pydantic import BaseModel, ValidationError
 
-from agent.llm import LLMClient
+from agent.llms import LLMClient
 
 
 class PlanStep(BaseModel):

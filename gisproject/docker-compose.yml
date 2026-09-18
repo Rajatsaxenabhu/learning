@@ -10,7 +10,7 @@ services:
     ipc: host
 
     ports:
-      - "8010:8000"
+      - "8000:8000"
 
     volumes:
       - huggingface-cache:/root/.cache/huggingface
@@ -27,7 +27,7 @@ services:
       - --max-model-len=16384
 
       # Use more GPU memory for KV cache
-      - --gpu-memory-utilization=0.97
+      - --gpu-memory-utilization=0.90
 
       # Tool calling
       - --enable-auto-tool-choice

@@ -3,6 +3,8 @@ name = "gisproject"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
+    "langchain>=1.4.1",
+    "langchain-openai>=1.6.2",
     "mcp[cli]>=2.2.0",
     "openai>=1.0.0",
     "pyproj>=3.8.0",
