@@ -1,16 +1,15 @@
+name: gisai
 services:
 
   vllm:
     image: vllm/vllm-openai:latest
-
-    container_name: gisproject-vllm
 
     restart: unless-stopped
 
     ipc: host
 
     ports:
-      - "8000:8000"
+      - "8100:8000"
 
     volumes:
       - huggingface-cache:/root/.cache/huggingface
@@ -23,17 +22,13 @@ services:
       - --served-model-name=qwen3-8b
       - --quantization=awq
 
-      # Increased context for multi-step agent execution
       - --max-model-len=16384
 
-      # Use more GPU memory for KV cache
       - --gpu-memory-utilization=0.90
 
-      # Tool calling
       - --enable-auto-tool-choice
       - --tool-call-parser=hermes
 
-      # Qwen3 reasoning parser
       - --reasoning-parser=qwen3
 
     deploy:
@@ -51,5 +46,57 @@ services:
       retries: 5
       start_period: 300s
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    volumes:
+      - ./backend:/home/app
+      - backend-venv:/home/app/.venv
+    ports:
+      - "7000:7000"
+    env_file:
+      - ./backend/.fastdb.env
+    command: uvicorn app.main:app --host 0.0.0.0 --port 7000 --reload --reload-dir app
+    depends_on:
+      vllm:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: postgis/postgis:16-3.4
+    restart: always
+    env_file:
+      - ./backend/.fastdb.env
+    ports:
+      - "5440:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.4
+    env_file:
+      - ./backend/.fastdb.env
+    restart: always
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   huggingface-cache:
+  backend-venv:
+  redis_data:
+  postgres_data:

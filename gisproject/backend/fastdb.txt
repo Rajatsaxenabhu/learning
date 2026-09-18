@@ -1,0 +1,4 @@
+REDIS_USERNAME=default
+REDIS_PASSWORD=your_secure_password
+REDIS_PORT=6379
+REDIS_HOST=redis
