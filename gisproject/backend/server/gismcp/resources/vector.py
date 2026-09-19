@@ -52,6 +52,16 @@ PROJECTION_TOOLS = {
     "calculate_utm_zone_tool",
 }
 
+DATA_TOOLS = {
+    "get_vector_metadata_tool",
+    "list_vector_layers_tool",
+    "get_vector_schema_tool",
+    "get_feature_count_tool",
+    "filter_features_tool",
+    "spatial_query_tool",
+    "features_within_distance_tool",
+}
+
 
 @mcp.resource("gis://vector/operations")
 async def vector_operations() -> dict:
@@ -62,9 +72,10 @@ async def vector_operations() -> dict:
     categories = {
         "geometry": sorted(registered & GEOMETRY_TOOLS),
         "projection": sorted(registered & PROJECTION_TOOLS),
+        "data": sorted(registered & DATA_TOOLS),
     }
 
-    uncategorized = sorted(registered - GEOMETRY_TOOLS - PROJECTION_TOOLS)
+    uncategorized = sorted(registered - GEOMETRY_TOOLS - PROJECTION_TOOLS - DATA_TOOLS)
     if uncategorized:
         categories["uncategorized"] = uncategorized
 

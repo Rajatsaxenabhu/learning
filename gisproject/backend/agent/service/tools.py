@@ -1,9 +1,43 @@
 import json
-
+import re
+from pathlib import Path
 from typing import Any
+
+from app.conf.redis.redis_async_manager import AsyncRedisManager
+from app.conf.settings import Settings
 
 from pydantic import create_model, Field
 from langchain_core.tools import StructuredTool, ToolException
+
+
+DATASET_ID_RE = re.compile(r"^ds_[0-9a-f]{12}$")
+
+
+async def resolve_dataset_args(kwargs: dict[str, Any]) -> dict[str, Any]:
+    allowed_root = Path(Settings().TEMP_DIR).resolve()
+    resolved = {}
+
+    for name, value in kwargs.items():
+        if isinstance(value, str) and DATASET_ID_RE.match(value):
+            dataset = await AsyncRedisManager().get_json(value)
+            if not dataset:
+                raise ToolException(f"Dataset {value} is invalid or expired")
+            value = dataset["path"]
+
+        if name.endswith("_path") and isinstance(value, str):
+            if not Path(value).resolve().is_relative_to(allowed_root):
+                raise ToolException(
+                    f"'{name}' must be an uploaded dataset_id, not a file path"
+                )
+
+        resolved[name] = value
+
+    return resolved
+
+
+def is_read_only(mcp_tool) -> bool:
+    annotations = mcp_tool.annotations
+    return bool(annotations and annotations.read_only_hint)
 
 
 def create_args_schema(mcp_tool):
@@ -51,7 +85,7 @@ def create_mcp_tool(
         result = await client.call_tool(
             mcp_tool.name,
             {
-                "payload": kwargs,
+                "payload": await resolve_dataset_args(kwargs),
             },
         )
 
@@ -74,6 +108,7 @@ def create_mcp_tool(
         name=mcp_tool.name,
         description=mcp_tool.description or "",
         args_schema=args_schema,
+        metadata={"read_only": is_read_only(mcp_tool)},
     )
 
 async def discover_tools(

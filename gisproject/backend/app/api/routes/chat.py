@@ -1,6 +1,6 @@
 from fastapi import APIRouter, WebSocket
 
-from app.api.routes.service.chat import SESSION_NOT_FOUND, ChatConnection, user_model
+from app.api.service.chat import SESSION_NOT_FOUND, ChatConnection, user_model
 
 router = APIRouter()
 

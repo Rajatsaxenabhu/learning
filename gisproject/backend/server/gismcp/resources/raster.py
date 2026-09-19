@@ -18,6 +18,17 @@ STATISTICS_TOOLS = {
     "calculate_nodata_percentage_tool",
 }
 
+PROCESSING_TOOLS = {
+    "clip_raster_tool",
+    "mask_raster_tool",
+    "reproject_raster_tool",
+    "resample_raster_tool",
+    "merge_rasters_tool",
+    "crop_raster_tool",
+    "rasterize_vector_tool",
+    "polygonize_raster_tool",
+}
+
 
 @mcp.resource("gis://raster/operations")
 async def raster_operations() -> dict:
@@ -28,6 +39,7 @@ async def raster_operations() -> dict:
     categories = {
         "metadata": sorted(registered & METADATA_TOOLS),
         "statistics": sorted(registered & STATISTICS_TOOLS),
+        "processing": sorted(registered & PROCESSING_TOOLS),
     }
 
     return categories

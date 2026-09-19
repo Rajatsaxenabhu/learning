@@ -35,10 +35,10 @@ from server.gismcp.schemas.vector.geometry import (
     ValidateGeometryInput,
     ValidateGeometryOutput,
 )
-from server.gismcp.server import mcp
+from server.gismcp.server import READ_ONLY, mcp
 
 
-@mcp.tool(title="calculate_area_tool")
+@mcp.tool(title="calculate_area_tool", annotations=READ_ONLY)
 def calculate_area_tool(
     payload: CalculateAreaInput,
 ) -> CalculateAreaOutput:
@@ -47,7 +47,7 @@ def calculate_area_tool(
     return calculate_area(payload)
 
 
-@mcp.tool(title="calculate_length_tool")
+@mcp.tool(title="calculate_length_tool", annotations=READ_ONLY)
 def calculate_length_tool(
     payload: CalculateLengthInput,
 ) -> CalculateLengthOutput:
@@ -56,7 +56,7 @@ def calculate_length_tool(
     return calculate_length(payload)
 
 
-@mcp.tool(title="calculate_centroid_tool")
+@mcp.tool(title="calculate_centroid_tool", annotations=READ_ONLY)
 def calculate_centroid_tool(
     payload: CalculateCentroidInput,
 ) -> CalculateCentroidOutput:
@@ -65,7 +65,7 @@ def calculate_centroid_tool(
     return calculate_centroid(payload)
 
 
-@mcp.tool(title="buffer_geometry_tool")
+@mcp.tool(title="buffer_geometry_tool", annotations=READ_ONLY)
 def buffer_geometry_tool(
     payload: BufferGeometryInput,
 ) -> BufferGeometryOutput:
@@ -74,7 +74,7 @@ def buffer_geometry_tool(
     return buffer_geometry(payload)
 
 
-@mcp.tool(title="intersection_tool")
+@mcp.tool(title="intersection_tool", annotations=READ_ONLY)
 def intersection_tool(
     payload: IntersectionInput,
 ) -> IntersectionOutput:
@@ -83,7 +83,7 @@ def intersection_tool(
     return intersection(payload)
 
 
-@mcp.tool(title="difference_tool")
+@mcp.tool(title="difference_tool", annotations=READ_ONLY)
 def difference_tool(
     payload: DifferenceInput,
 ) -> DifferenceOutput:
@@ -92,7 +92,7 @@ def difference_tool(
     return difference(payload)
 
 
-@mcp.tool(title="union_geometries_tool")
+@mcp.tool(title="union_geometries_tool", annotations=READ_ONLY)
 def union_geometries_tool(
     payload: UnionGeometriesInput,
 ) -> UnionGeometriesOutput:
@@ -101,7 +101,7 @@ def union_geometries_tool(
     return union_geometries(payload)
 
 
-@mcp.tool(title="simplify_geometry_tool")
+@mcp.tool(title="simplify_geometry_tool", annotations=READ_ONLY)
 def simplify_geometry_tool(
     payload: SimplifyGeometryInput,
 ) -> SimplifyGeometryOutput:
@@ -110,7 +110,7 @@ def simplify_geometry_tool(
     return simplify_geometry(payload)
 
 
-@mcp.tool(title="convex_hull_tool")
+@mcp.tool(title="convex_hull_tool", annotations=READ_ONLY)
 def convex_hull_tool(
     payload: ConvexHullInput,
 ) -> ConvexHullOutput:
@@ -119,7 +119,7 @@ def convex_hull_tool(
     return convex_hull(payload)
 
 
-@mcp.tool(title="bounds_tool")
+@mcp.tool(title="bounds_tool", annotations=READ_ONLY)
 def bounds_tool(
     payload: BoundsInput,
 ) -> BoundsOutput:
@@ -128,7 +128,7 @@ def bounds_tool(
     return bounds(payload)
 
 
-@mcp.tool(title="validate_geometry_tool")
+@mcp.tool(title="validate_geometry_tool", annotations=READ_ONLY)
 def validate_geometry_tool(
     payload: ValidateGeometryInput,
 ) -> ValidateGeometryOutput:

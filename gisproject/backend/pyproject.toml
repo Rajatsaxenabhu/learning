@@ -25,4 +25,5 @@ dependencies = [
     "shapely>=2.1.2",
     "sqlalchemy>=2.0.54",
     "uvicorn[standard]>=0.53.0",
+    "pyogrio>=0.13.0",
 ]

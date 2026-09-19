@@ -23,6 +23,9 @@ def make_llm_node(llm):
     return llm_node
 
 def make_tools_node(tools):
+    read_only = {
+        tool.name: bool((tool.metadata or {}).get("read_only")) for tool in tools
+    }
 
     tool_node = ToolNode(
         tools,
@@ -31,14 +34,20 @@ def make_tools_node(tools):
 
     async def tools_node(state: AgentState):
 
-        approval = interrupt({
-            "type": "tool_approval",
-            "message": "Approve GIS tool execution?",
-            "tools": [
-                call["name"]
-                for call in state["messages"][-1].tool_calls
-            ],
-        })
+        needs_approval = [
+            call["name"]
+            for call in state["messages"][-1].tool_calls
+            if not read_only.get(call["name"], False)
+        ]
+
+        approval = "approve"
+
+        if needs_approval:
+            approval = interrupt({
+                "type": "tool_approval",
+                "message": "Approve GIS tool execution?",
+                "tools": needs_approval,
+            })
 
         if approval != "approve":
             return {

@@ -14,10 +14,10 @@ from server.gismcp.schemas.vector.projection import (
     CalculateUtmZoneInput,
     CalculateUtmZoneOutput,
 )
-from server.gismcp.server import mcp
+from server.gismcp.server import READ_ONLY, mcp
 
 
-@mcp.tool(title="transform_geometry_tool")
+@mcp.tool(title="transform_geometry_tool", annotations=READ_ONLY)
 def transform_geometry_tool(
     payload: TransformGeometryInput,
 ) -> TransformGeometryOutput:
@@ -26,7 +26,7 @@ def transform_geometry_tool(
     return transform_geometry(payload)
 
 
-@mcp.tool(title="get_crs_info_tool")
+@mcp.tool(title="get_crs_info_tool", annotations=READ_ONLY)
 def get_crs_info_tool(
     payload: GetCrsInfoInput,
 ) -> GetCrsInfoOutput:
@@ -35,7 +35,7 @@ def get_crs_info_tool(
     return get_crs_info(payload)
 
 
-@mcp.tool(title="is_projected_crs_tool")
+@mcp.tool(title="is_projected_crs_tool", annotations=READ_ONLY)
 def is_projected_crs_tool(
     payload: IsProjectedCrsInput,
 ) -> IsProjectedCrsOutput:
@@ -44,7 +44,7 @@ def is_projected_crs_tool(
     return is_projected_crs(payload)
 
 
-@mcp.tool(title="calculate_utm_zone_tool")
+@mcp.tool(title="calculate_utm_zone_tool", annotations=READ_ONLY)
 def calculate_utm_zone_tool(
     payload: CalculateUtmZoneInput,
 ) -> CalculateUtmZoneOutput:

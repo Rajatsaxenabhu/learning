@@ -17,10 +17,10 @@ from server.gismcp.schemas.raster.metadata import (
     GetRasterBandInfoInput,
     GetRasterBandInfoOutput,
 )
-from server.gismcp.server import mcp
+from server.gismcp.server import READ_ONLY, mcp
 
 
-@mcp.tool(title="get_raster_metadata_tool")
+@mcp.tool(title="get_raster_metadata_tool", annotations=READ_ONLY)
 def get_raster_metadata_tool(
     payload: GetRasterMetadataInput,
 ) -> GetRasterMetadataOutput:
@@ -29,7 +29,7 @@ def get_raster_metadata_tool(
     return get_raster_metadata(payload)
 
 
-@mcp.tool(title="get_raster_crs_tool")
+@mcp.tool(title="get_raster_crs_tool", annotations=READ_ONLY)
 def get_raster_crs_tool(
     payload: GetRasterCrsInput,
 ) -> GetRasterCrsOutput:
@@ -38,7 +38,7 @@ def get_raster_crs_tool(
     return get_raster_crs(payload)
 
 
-@mcp.tool(title="get_raster_bounds_tool")
+@mcp.tool(title="get_raster_bounds_tool", annotations=READ_ONLY)
 def get_raster_bounds_tool(
     payload: GetRasterBoundsInput,
 ) -> GetRasterBoundsOutput:
@@ -47,7 +47,7 @@ def get_raster_bounds_tool(
     return get_raster_bounds(payload)
 
 
-@mcp.tool(title="get_raster_resolution_tool")
+@mcp.tool(title="get_raster_resolution_tool", annotations=READ_ONLY)
 def get_raster_resolution_tool(
     payload: GetRasterResolutionInput,
 ) -> GetRasterResolutionOutput:
@@ -56,7 +56,7 @@ def get_raster_resolution_tool(
     return get_raster_resolution(payload)
 
 
-@mcp.tool(title="get_raster_band_info_tool")
+@mcp.tool(title="get_raster_band_info_tool", annotations=READ_ONLY)
 def get_raster_band_info_tool(
     payload: GetRasterBandInfoInput,
 ) -> GetRasterBandInfoOutput:

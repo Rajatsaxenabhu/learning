@@ -36,6 +36,9 @@ logs/
 # Node / frontend
 node_modules/
 frontend/dist/
+frontend/.next/
+frontend/out/
+frontend/next-env.d.ts
 *.tsbuildinfo
 .vite/
 
@@ -45,3 +48,20 @@ frontend/dist/
 
 # OS
 .DS_Store
+
+# Runtime data (uploads, chunks, generated outputs)
+gisproject/backend/temp/
+
+# Local databases (e.g. LangGraph checkpoints)
+*.db
+*.sqlite
+*.sqlite3
+
+# Geospatial data
+*.tif
+*.tiff
+*.gpkg
+*.shp
+*.shx
+*.dbf
+*.geojson

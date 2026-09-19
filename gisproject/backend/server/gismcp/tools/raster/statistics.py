@@ -20,10 +20,10 @@ from server.gismcp.schemas.raster.statistics import (
     CalculateNodataPercentageInput,
     CalculateNodataPercentageOutput,
 )
-from server.gismcp.server import mcp
+from server.gismcp.server import READ_ONLY, mcp
 
 
-@mcp.tool(title="calculate_raster_statistics_tool")
+@mcp.tool(title="calculate_raster_statistics_tool", annotations=READ_ONLY)
 def calculate_raster_statistics_tool(
     payload: CalculateRasterStatisticsInput,
 ) -> CalculateRasterStatisticsOutput:
@@ -32,7 +32,7 @@ def calculate_raster_statistics_tool(
     return calculate_raster_statistics(payload)
 
 
-@mcp.tool(title="calculate_percentiles_tool")
+@mcp.tool(title="calculate_percentiles_tool", annotations=READ_ONLY)
 def calculate_percentiles_tool(
     payload: CalculatePercentilesInput,
 ) -> CalculatePercentilesOutput:
@@ -41,7 +41,7 @@ def calculate_percentiles_tool(
     return calculate_percentiles(payload)
 
 
-@mcp.tool(title="get_unique_values_tool")
+@mcp.tool(title="get_unique_values_tool", annotations=READ_ONLY)
 def get_unique_values_tool(
     payload: GetUniqueValuesInput,
 ) -> GetUniqueValuesOutput:
@@ -50,7 +50,7 @@ def get_unique_values_tool(
     return get_unique_values(payload)
 
 
-@mcp.tool(title="calculate_histogram_tool")
+@mcp.tool(title="calculate_histogram_tool", annotations=READ_ONLY)
 def calculate_histogram_tool(
     payload: CalculateHistogramInput,
 ) -> CalculateHistogramOutput:
@@ -59,7 +59,7 @@ def calculate_histogram_tool(
     return calculate_histogram(payload)
 
 
-@mcp.tool(title="get_pixel_value_tool")
+@mcp.tool(title="get_pixel_value_tool", annotations=READ_ONLY)
 def get_pixel_value_tool(
     payload: GetPixelValueInput,
 ) -> GetPixelValueOutput:
@@ -68,7 +68,7 @@ def get_pixel_value_tool(
     return get_pixel_value(payload)
 
 
-@mcp.tool(title="calculate_nodata_percentage_tool")
+@mcp.tool(title="calculate_nodata_percentage_tool", annotations=READ_ONLY)
 def calculate_nodata_percentage_tool(
     payload: CalculateNodataPercentageInput,
 ) -> CalculateNodataPercentageOutput:

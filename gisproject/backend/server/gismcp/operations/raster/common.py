@@ -88,3 +88,92 @@ def crs_axis_unit(dataset) -> str | None:
 
     except Exception:
         return None
+
+
+def default_nodata(dtype) -> float | int:
+    """Pick a NoData value for a dtype that has none defined."""
+
+    dtype = np.dtype(dtype)
+
+    if dtype.kind == "f":
+        return -9999.0
+
+    info = np.iinfo(dtype)
+
+    return int(info.min) if dtype.kind == "i" else int(info.max)
+
+
+def prepare_output(
+    output_path: str,
+    overwrite: bool,
+    sources: list[str] | None = None,
+) -> Path:
+    path = Path(output_path)
+
+    if not path.parent.is_dir():
+        raise ValueError(
+            f"Output directory does not exist: {path.parent}"
+        )
+
+    resolved = path.resolve()
+
+    for source in sources or []:
+        if Path(source).resolve() == resolved:
+            raise ValueError(
+                "Output path must differ from the input path."
+            )
+
+    if path.exists() and not overwrite:
+        raise ValueError(
+            f"Output file already exists: {output_path}. Set overwrite=true to replace it."
+        )
+
+    return path
+
+
+def write_raster(path: Path, array, *, crs, transform, nodata) -> None:
+    """Write a (bands, height, width) array to a compressed GeoTIFF."""
+
+    count, height, width = array.shape
+
+    try:
+        with rasterio.open(
+            path,
+            "w",
+            driver="GTiff",
+            width=width,
+            height=height,
+            count=count,
+            dtype=array.dtype,
+            crs=crs,
+            transform=transform,
+            nodata=nodata,
+            compress="lzw",
+        ) as dst:
+            dst.write(array)
+
+    except Exception as exc:
+        raise ValueError(
+            f"Failed to write raster '{path}': {exc}"
+        ) from exc
+
+
+def describe_output(path: Path) -> dict:
+    with open_raster(str(path)) as dataset:
+        return {
+            "output_path": str(path),
+            "width": dataset.width,
+            "height": dataset.height,
+            "band_count": dataset.count,
+            "crs": crs_string(dataset),
+            "bounds": list(dataset.bounds),
+        }
+
+
+def require_crs(dataset) -> str:
+    if dataset.crs is None:
+        raise ValueError(
+            "Raster has no CRS, so this operation is not possible."
+        )
+
+    return dataset.crs.to_wkt()

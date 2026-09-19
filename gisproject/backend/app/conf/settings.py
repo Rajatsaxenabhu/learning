@@ -1,5 +1,8 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL
+import os
+
 
 
 def get_db_url(drivername, username, password, host, database, port) -> URL:
@@ -29,8 +32,15 @@ class Settings(BaseSettings):
     REDIS_USERNAME: str = "default"
     REDIS_PASSWORD: str = ""
 
-    LLM_URL:str="http://vllm:8100"
-    
+    LLM_URL:str=""
+    TEMP_DIR:str=""
+
+    @model_validator(mode="after")
+    def _create_temp_dir(self):
+        os.makedirs(self.TEMP_DIR, exist_ok=True)
+        return self
+
+
     def _db_url(self, drivername: str) -> URL:
         return get_db_url(
             drivername=drivername,
