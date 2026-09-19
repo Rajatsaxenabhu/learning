@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     REDIS_USERNAME: str = "default"
     REDIS_PASSWORD: str = ""
 
+    LLM_URL:str="http://vllm:8100"
+    
     def _db_url(self, drivername: str) -> URL:
         return get_db_url(
             drivername=drivername,

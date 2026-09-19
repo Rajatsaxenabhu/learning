@@ -3,6 +3,7 @@ from fastapi.exceptions import HTTPException
 from app.api.exception.exceptions import EmailAlreadyExistsException,CustomException
 from asyncpg.exceptions import NotNullViolationError, UniqueViolationError
 
+import httpx
 from functools import wraps
 from sqlalchemy.exc import IntegrityError
 def validate(func):
@@ -37,6 +38,21 @@ def validate(func):
             raise HTTPException(
                 status_code=e.status_code,
                 detail=str(e)
+            )
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"External API returned {e.response.status_code}: {e.response.text}"
+            )
+        except httpx.TimeoutException as e:
+            raise HTTPException(
+                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+                detail=f"External API timed out: {e!r}"
+            )
+        except httpx.RequestError as e:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"External API unreachable: {e!r}"
             )
         except Exception as e:
             print("error is here",e)

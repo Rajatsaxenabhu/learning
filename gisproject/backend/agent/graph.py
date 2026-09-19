@@ -1,3 +1,4 @@
+from langchain_core.messages import ToolMessage
 from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import ToolNode, tools_condition
 from langgraph.types import interrupt
@@ -41,9 +42,17 @@ def make_tools_node(tools):
 
         if approval != "approve":
             return {
+                "messages": [
+                    ToolMessage(
+                        content="Tool execution rejected by user.",
+                        tool_call_id=call["id"],
+                        name=call["name"],
+                    )
+                    for call in state["messages"][-1].tool_calls
+                ],
                 "tool_errors": [
                     "Tool execution rejected by user."
-                ]
+                ],
             }
 
         result = await tool_node.ainvoke(state)

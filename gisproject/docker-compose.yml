@@ -55,7 +55,7 @@ services:
       - ./backend:/home/app
       - backend-venv:/home/app/.venv
     ports:
-      - "7000:7000"
+      - "7100:7000"
     env_file:
       - ./backend/.fastdb.env
     command: uvicorn app.main:app --host 0.0.0.0 --port 7000 --reload --reload-dir app
@@ -87,8 +87,11 @@ services:
     env_file:
       - ./backend/.fastdb.env
     restart: always
+    ports:
+      - "6390:6379"
     volumes:
       - redis_data:/data
+    
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s

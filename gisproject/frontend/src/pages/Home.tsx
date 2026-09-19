@@ -8,36 +8,58 @@ import { Features, HowItWorks, Tools } from '@/components/home/Sections'
 
 export default function Home() {
   return (
-    <div className="dark min-h-svh bg-background text-foreground">
+    <div className="min-h-svh bg-background text-foreground">
       <Navbar />
 
       <main>
-        <section className="relative overflow-hidden">
+        <section className="relative overflow-hidden border-b border-border">
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 -top-40 h-96 bg-[radial-gradient(ellipse_at_center,oklch(0.7_0.15_165/0.18),transparent_70%)]"
+            className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] bg-[size:48px_48px] opacity-40 [mask-image:radial-gradient(ellipse_at_center,black,transparent_75%)]"
           />
-          <div className="relative mx-auto max-w-6xl px-4 pt-20 pb-16 text-center md:pt-28">
-            <span className="mb-6 inline-block rounded-full border border-border px-3 py-1 font-mono text-xs text-muted-foreground">
-              MCP + agentic AI for GIS
-            </span>
-            <h1 className="mx-auto max-w-3xl text-4xl font-semibold tracking-tight text-balance md:text-6xl">
-              Ask questions. Get maps.
-            </h1>
-            <p className="mx-auto mt-5 max-w-xl text-lg text-balance text-muted-foreground">
-              GeoAgent is an AI analyst that runs real GIS operations for you. Describe what you need, and it plans, executes and maps the result.
-            </p>
-            <div className="mt-8 flex justify-center gap-3">
-              <Button size="lg" render={<Link to="/app" />}>
-                Get started <ArrowRight />
-              </Button>
-              <Button size="lg" variant="outline" render={<a href="#how-it-works" />}>
-                See how it works
-              </Button>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -top-40 left-1/4 size-[36rem] rounded-full bg-emerald-500/20 blur-3xl"
+          />
+          <div className="relative grid w-full items-center gap-12 px-4 py-16 sm:px-8 lg:grid-cols-[5fr_6fr] lg:gap-16 lg:px-16 lg:py-24">
+            <div className="text-center lg:text-left">
+              <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-background/60 px-3 py-1 font-mono text-xs text-muted-foreground backdrop-blur">
+                <span className="size-1.5 rounded-full bg-emerald-500" />
+                MCP + agentic AI for GIS
+              </span>
+              <h1 className="text-4xl font-semibold tracking-tight text-balance md:text-6xl xl:text-7xl">
+                Ask questions.{' '}
+                <span className="bg-gradient-to-r from-emerald-500 to-sky-500 bg-clip-text text-transparent">
+                  Get maps.
+                </span>
+              </h1>
+              <p className="mx-auto mt-6 max-w-xl text-lg text-balance text-muted-foreground lg:mx-0">
+                GeoAgent is an AI analyst that runs real GIS operations for you. Describe what you need, and it plans, executes and maps the result.
+              </p>
+              <div className="mt-8 flex flex-wrap justify-center gap-3 lg:justify-start">
+                <Button size="lg" className="h-11 px-6 text-base" render={<Link to="/app" />}>
+                  Get started <ArrowRight />
+                </Button>
+                <Button size="lg" variant="outline" className="h-11 px-6 text-base" render={<a href="#how-it-works" />}>
+                  See how it works
+                </Button>
+              </div>
+              <dl className="mt-10 flex justify-center gap-8 lg:justify-start">
+                {[
+                  ['15+', 'GIS tools'],
+                  ['MCP', 'open protocol'],
+                  ['Live', 'streamed steps'],
+                ].map(([v, l]) => (
+                  <div key={l}>
+                    <dt className="text-2xl font-semibold">{v}</dt>
+                    <dd className="text-xs text-muted-foreground">{l}</dd>
+                  </div>
+                ))}
+              </dl>
             </div>
-          </div>
-          <div className="relative mx-auto max-w-5xl px-4 pb-8">
-            <MapPreview />
+            <div className="relative">
+              <MapPreview />
+            </div>
           </div>
         </section>
 
@@ -45,8 +67,8 @@ export default function Home() {
         <HowItWorks />
         <Tools />
 
-        <section className="mx-auto max-w-6xl px-4 py-20">
-          <Reveal className="rounded-2xl border border-border bg-card px-6 py-14 text-center">
+        <section className="w-full px-4 py-20 sm:px-8 lg:px-16">
+          <Reveal className="rounded-3xl border border-border bg-gradient-to-br from-emerald-500/15 via-card to-sky-500/10 px-6 py-20 text-center">
             <h2 className="text-3xl font-semibold tracking-tight">Start your first analysis</h2>
             <p className="mx-auto mt-3 max-w-md text-muted-foreground">
               Upload a layer, ask a question, and watch the agent work.

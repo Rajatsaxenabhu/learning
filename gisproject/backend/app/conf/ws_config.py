@@ -25,16 +25,16 @@ async def safe_send(ws: WebSocket, message: dict):
 class ConnectionManager:
 
     def __init__(self):
-        self._task_clients: Dict[str, Set[WebSocket]] = {}
+        self._session_clients: Dict[str, Set[WebSocket]] = {}
         self._lock = asyncio.Lock()
 
-    async def connect(self, websocket: WebSocket, task_id: str):
+    async def connect(self, websocket: WebSocket, session_id: str):
         async with self._lock:
-            self._task_clients.setdefault(task_id, set()).add(websocket)
+            self._session_clients.setdefault(session_id, set()).add(websocket)
 
-    async def disconnect(self, websocket: WebSocket, task_id: str):
+    async def disconnect(self, websocket: WebSocket, session_id: str):
         async with self._lock:
-            clients = self._task_clients.get(task_id)
+            clients = self._session_clients.get(session_id)
 
             if not clients:
                 return
@@ -42,16 +42,16 @@ class ConnectionManager:
             clients.discard(websocket)
 
             if not clients:
-                self._task_clients.pop(task_id, None)
+                self._session_clients.pop(session_id, None)
 
-    async def clients_for(self, task_id: str):
+    async def clients_for(self, session_id: str):
         async with self._lock:
-            return set(self._task_clients.get(task_id, set()))
+            return set(self._session_clients.get(session_id, set()))
 
-    async def broadcast(self, task_id: str, message: dict):
+    async def broadcast(self, session_id: str, message: dict):
         
 
-        clients = await self.clients_for(task_id)
+        clients = await self.clients_for(session_id)
 
         if not clients:
             return
@@ -68,7 +68,7 @@ class ConnectionManager:
         if dead_clients:
             async with self._lock:
                 for ws in dead_clients:
-                    self._task_clients.get(task_id, set()).discard(ws)
+                    self._session_clients.get(session_id, set()).discard(ws)
 
 
 

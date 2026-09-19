@@ -73,9 +73,9 @@ const steps = [
 
 function Heading({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
-    <Reveal className="mb-10 max-w-2xl">
-      <p className="mb-2 font-mono text-xs tracking-widest text-emerald-400 uppercase">{eyebrow}</p>
-      <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">{title}</h2>
+    <Reveal className="mx-auto mb-12 max-w-2xl text-center">
+      <p className="mb-2 font-mono text-xs tracking-widest text-emerald-500 uppercase">{eyebrow}</p>
+      <h2 className="text-3xl font-semibold tracking-tight text-balance md:text-4xl">{title}</h2>
     </Reveal>
   )
 }
@@ -97,12 +97,14 @@ function ExpandCard({ item, delay }: { item: Item; delay: number }) {
         )}
       >
         <div className="mb-4 flex items-center justify-between">
-          <Icon
-            className={cn(
-              'size-5 text-emerald-400 transition-transform duration-300',
-              open ? 'scale-125 rotate-6' : 'group-hover:scale-110',
-            )}
-          />
+          <span className="flex size-10 items-center justify-center rounded-lg bg-emerald-500/10 ring-1 ring-emerald-500/20">
+            <Icon
+              className={cn(
+                'size-5 text-emerald-500 transition-transform duration-300',
+                open ? 'scale-125 rotate-6' : 'group-hover:scale-110',
+              )}
+            />
+          </span>
           <ChevronDown
             className={cn('size-4 text-muted-foreground transition-transform duration-300', open && 'rotate-180')}
           />
@@ -124,9 +126,9 @@ function ExpandCard({ item, delay }: { item: Item; delay: number }) {
 
 export function Features() {
   return (
-    <section id="features" className="mx-auto max-w-6xl scroll-mt-16 px-4 py-20">
+    <section id="features" className="w-full scroll-mt-16 px-4 py-20 sm:px-8 lg:px-16">
       <Heading eyebrow="Features" title="Spatial analysis without the GIS learning curve" />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {features.map((f, i) => (
           <ExpandCard key={f.title} item={f} delay={i * 100} />
         ))}
@@ -137,15 +139,18 @@ export function Features() {
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="mx-auto max-w-6xl scroll-mt-16 px-4 py-20">
+    <section id="how-it-works" className="w-full scroll-mt-16 border-y border-border bg-muted/40 px-4 py-20 sm:px-8 lg:px-16">
       <Heading eyebrow="How it works" title="From question to map in four steps" />
-      <ol className="grid gap-6 md:grid-cols-4">
+      <ol className="relative grid gap-8 md:grid-cols-4">
+        <div aria-hidden className="absolute top-5 right-[12.5%] left-[12.5%] hidden border-t border-dashed border-emerald-500/40 md:block" />
         {steps.map((s, i) => (
           <li key={s.n}>
-            <Reveal delay={i * 150} className="border-t border-border pt-4">
-              <span className="font-mono text-sm text-emerald-400">{s.n}</span>
-              <h3 className="mt-2 mb-1 font-medium">{s.title}</h3>
-              <p className="text-sm text-muted-foreground">{s.body}</p>
+            <Reveal delay={i * 150} className="flex flex-col items-center text-center">
+              <span className="relative flex size-10 items-center justify-center rounded-full border border-emerald-500/50 bg-background font-mono text-sm text-emerald-500">
+                {s.n}
+              </span>
+              <h3 className="mt-4 mb-1 text-lg font-medium">{s.title}</h3>
+              <p className="max-w-56 text-sm text-muted-foreground">{s.body}</p>
             </Reveal>
           </li>
         ))}
@@ -156,7 +161,7 @@ export function HowItWorks() {
 
 export function Tools() {
   return (
-    <section id="tools" className="mx-auto max-w-6xl scroll-mt-16 px-4 py-20">
+    <section id="tools" className="w-full scroll-mt-16 px-4 py-20 sm:px-8 lg:px-16">
       <Heading eyebrow="MCP toolbox" title="A growing set of GIS tools the agent can call" />
       <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {toolGroups.map((t, i) => (
