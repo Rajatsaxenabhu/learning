@@ -1,19 +1,39 @@
 name: gisai
 services:
 
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=eyJhIjoiMjFhMWIxODZmN2VlYmYyYmExMjM0MmJmYTI5YzBjYjMiLCJ0IjoiODI3Y2Y4YzUtYTk2YS00OWFlLTliYjEtMmViNjNiNWExZmNmIiwicyI6Ik5XTTVZV1V6Wm1NdFlXUXpPUzAwTm1NMUxXSmxPV0V0TnpVMU16WTBPREJrTXpObCJ9
+    depends_on:
+      - traefik
+
+  traefik:
+    image: traefik:v3.7
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command:
+      - "--entrypoints.web.address=:80"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.constraints=Label(`com.docker.compose.project`, `gisai`)"
+      - "--api.insecure=true"
+      - "--log.level=INFO"
+      - "--accesslog=true"
+      - "--metrics.prometheus=true"
+
   vllm:
     image: vllm/vllm-openai:latest
-
     restart: unless-stopped
-
     ipc: host
-
-    ports:
-      - "8100:8000"
-
     volumes:
       - huggingface-cache:/root/.cache/huggingface
-
     environment:
       - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN:-}
 
@@ -21,14 +41,10 @@ services:
       - --model=Qwen/Qwen3-8B-AWQ
       - --served-model-name=qwen3-8b
       - --quantization=awq
-
       - --max-model-len=16384
-
       - --gpu-memory-utilization=0.90
-
       - --enable-auto-tool-choice
       - --tool-call-parser=hermes
-
       - --reasoning-parser=qwen3
 
     deploy:
@@ -66,6 +82,11 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`aiapi.kalki.space`)"
+      - "traefik.http.routers.backend.entrypoints=web"
+      - "traefik.http.services.backend.loadbalancer.server.port=7000"
 
   postgres:
     image: postgis/postgis:16-3.4
@@ -91,15 +112,100 @@ services:
       - "6390:6379"
     volumes:
       - redis_data:/data
-    
+
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: dockerfile.frontend
+    restart: unless-stopped
+    volumes:
+      - ./frontend:/app
+    depends_on:
+      - backend
+    command: sh -c "npm run build && npm start"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`kalki.space`)"
+      - "traefik.http.routers.frontend.entrypoints=web"
+      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    restart: unless-stopped
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/rootfs"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+
+  gpu-exporter:
+    image: utkuozdemir/nvidia_gpu_exporter:latest
+    restart: unless-stopped
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=changeme@121
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`monitor.kalki.space`)"
+      - "traefik.http.routers.grafana.entrypoints=web"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    environment:
+          - TZ=Asia/Kolkata
+    depends_on:
+      - node-exporter
+      - gpu-exporter
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=15d'
+
+
 volumes:
   huggingface-cache:
   backend-venv:
   redis_data:
   postgres_data:
+  frontend-node-modules:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  default:
+    name: kalki
