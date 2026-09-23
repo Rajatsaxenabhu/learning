@@ -9,10 +9,13 @@ services:
       - TUNNEL_TOKEN=eyJhIjoiMjFhMWIxODZmN2VlYmYyYmExMjM0MmJmYTI5YzBjYjMiLCJ0IjoiODI3Y2Y4YzUtYTk2YS00OWFlLTliYjEtMmViNjNiNWExZmNmIiwicyI6Ik5XTTVZV1V6Wm1NdFlXUXpPUzAwTm1NMUxXSmxPV0V0TnpVMU16WTBPREJrTXpObCJ9
     depends_on:
       - traefik
+      - backend
 
   traefik:
     image: traefik:v3.7
     restart: unless-stopped
+    depends_on:
+      - backend
     ports:
       - "80:80"
       - "8080:8080"
@@ -29,7 +32,9 @@ services:
       - "--metrics.prometheus=true"
 
   vllm:
-    image: vllm/vllm-openai:latest
+    build:
+      context: ./vllm
+      dockerfile: Dockerfile
     restart: unless-stopped
     ipc: host
     volumes:
@@ -38,10 +43,10 @@ services:
       - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN:-}
 
     command:
-      - --model=Qwen/Qwen3-8B-AWQ
-      - --served-model-name=qwen3-8b
-      - --quantization=awq
-      - --max-model-len=16384
+      - --model=AnkitAI/Parable-Qwen3-8B-Claude-Fable-5-GGUF:Q4_K_M
+      - --tokenizer=Qwen/Qwen3-8B
+      - --served-model-name=parable-qwen3-8b
+      - --max-model-len=32768
       - --gpu-memory-utilization=0.90
       - --enable-auto-tool-choice
       - --tool-call-parser=hermes
@@ -135,67 +140,6 @@ services:
       - "traefik.http.routers.frontend.entrypoints=web"
       - "traefik.http.services.frontend.loadbalancer.server.port=3000"
 
-  node-exporter:
-    image: prom/node-exporter:latest
-    restart: unless-stopped
-    pid: host
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    command:
-      - "--path.procfs=/host/proc"
-      - "--path.sysfs=/host/sys"
-      - "--path.rootfs=/rootfs"
-      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
-
-  gpu-exporter:
-    image: utkuozdemir/nvidia_gpu_exporter:latest
-    restart: unless-stopped
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=all
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-
-  grafana:
-    image: grafana/grafana:latest
-    restart: unless-stopped
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=changeme@121
-    volumes:
-      - grafana_data:/var/lib/grafana
-    ports:
-      - "3000:3000"
-    depends_on:
-      - prometheus
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(`monitor.kalki.space`)"
-      - "traefik.http.routers.grafana.entrypoints=web"
-      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
-
-  prometheus:
-    image: prom/prometheus:latest
-    restart: unless-stopped
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    environment:
-          - TZ=Asia/Kolkata
-    depends_on:
-      - node-exporter
-      - gpu-exporter
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.retention.time=15d'
-
 
 volumes:
   huggingface-cache:
@@ -203,8 +147,6 @@ volumes:
   redis_data:
   postgres_data:
   frontend-node-modules:
-  prometheus_data:
-  grafana_data:
 
 networks:
   default:
