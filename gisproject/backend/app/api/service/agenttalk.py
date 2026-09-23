@@ -4,7 +4,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 
-from agent.graph import build_graph
+from agent.llm.graph import build_graph
 from client.config import GIS_STDIO_SERVER
 from client.manager import MCPClientManager
 

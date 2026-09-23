@@ -4,7 +4,7 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langgraph.types import interrupt
 from agent.llm.model import model
 from agent.service.tools import discover_tools
-from agent.state import AgentState
+from agent.llm.state import AgentState
 
 
 MCP_SERVER_NAME = "gis_local"

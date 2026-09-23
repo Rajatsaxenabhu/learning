@@ -1,6 +1,6 @@
 from langchain_openai import ChatOpenAI
 
-from agent.llm.config import ModelConfig
+from agent.config.llm import ModelConfig
 
 
 model = ChatOpenAI(
