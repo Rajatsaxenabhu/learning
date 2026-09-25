@@ -9,6 +9,6 @@ POSTGRES_DB=genai
 POSTGRES_HOST=database
 POSTGRES_PORT=5432
 
-LLM_URL=http://localhost:8100
+LLM_URL=http://localhost:8000
 TAVILY_API_KEY="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"
 TEMP_DIR= /home/app/temp

@@ -9,3 +9,10 @@ model = ChatOpenAI(
     api_key=ModelConfig.api_key,
     stream_usage=True,
 )
+
+dev_model = ChatOpenAI(
+    model=ModelConfig.model,
+    base_url=ModelConfig.dev_url,
+    api_key=ModelConfig.api_key,
+    stream_usage=True,
+)

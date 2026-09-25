@@ -1,8 +1,7 @@
+from langchain_core.documents import Document
 from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import Distance, VectorParams
-
-from langchain_core.documents import Document
 
 
 class VectorStore:
@@ -20,8 +19,13 @@ class VectorStore:
 
         self.collection_name = collection_name
 
-        if not self.client.collection_exists(collection_name):
-            vector_size = len(embeddings.embed_query("test"))
+        if not self.client.collection_exists(
+            collection_name
+        ):
+            vector_size = len(
+                embeddings.embed_query("test")
+            )
+
             self.client.create_collection(
                 collection_name=collection_name,
                 vectors_config=VectorParams(
@@ -40,6 +44,8 @@ class VectorStore:
         self,
         documents: list[Document],
     ):
+        if not documents:
+            return
 
         self.store.add_documents(
             documents
@@ -50,8 +56,47 @@ class VectorStore:
         query: str,
         k: int = 5,
     ):
-
         return self.store.similarity_search(
             query,
             k=k,
         )
+
+    def get_documents(
+        self,
+        limit: int = 10000,
+    ) -> list[Document]:
+
+        points, _ = self.client.scroll(
+            collection_name=self.collection_name,
+            limit=limit,
+            with_payload=True,
+            with_vectors=False,
+        )
+
+        documents = []
+
+        for point in points:
+
+            payload = point.payload or {}
+
+            page_content = payload.get(
+                "page_content",
+                "",
+            )
+
+            metadata = payload.get(
+                "metadata",
+                {},
+            )
+
+            if not page_content:
+                continue
+
+            documents.append(
+                Document(
+                    page_content=page_content,
+                    metadata=metadata,
+                )
+            )
+
+        return documents

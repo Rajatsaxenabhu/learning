@@ -38,21 +38,20 @@ services:
     restart: unless-stopped
     ipc: host
     ports:
-      - "8100:8000"
+      - "8000:8000"
     volumes:
       - huggingface-cache:/root/.cache/huggingface
     environment:
       - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN:-}
 
     command:
-      - --model=AnkitAI/Parable-Qwen3-8B-Claude-Fable-5-GGUF:Q4_K_M
-      - --tokenizer=Qwen/Qwen3-8B
-      - --served-model-name=parable-qwen3-8b
-      - --max-model-len=32768
-      - --gpu-memory-utilization=0.90
+      - --model=Qwen/Qwen3-4B-Instruct-2507
+      - --served-model-name=qwen3-4b-instruct
+      - --dtype=bfloat16
+      - --max-model-len=16000
+      - --gpu-memory-utilization=0.80
       - --enable-auto-tool-choice
       - --tool-call-parser=hermes
-      - --reasoning-parser=qwen3
 
     deploy:
       resources:

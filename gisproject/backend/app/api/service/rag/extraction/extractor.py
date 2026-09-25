@@ -1,20 +1,16 @@
-from typing import Any
-import httpx
+from urllib.parse import urlparse
+
 from bs4 import BeautifulSoup
 from langchain_core.documents import Document
+import httpx
+
 
 class WebExtractor:
 
-    def __init__(
-        self,
-        timeout: float = 10.0,
-    ):
+    def __init__(self, timeout: float = 10.0):
         self.timeout = timeout
 
-    async def extract(
-        self,
-        url: str,
-    ) -> dict[str, Any]:
+    async def extract(self, url: str) -> Document:
 
         async with httpx.AsyncClient(
             timeout=self.timeout,
@@ -35,9 +31,14 @@ class WebExtractor:
             "html.parser",
         )
 
-
         for tag in soup(
-            ["script", "style", "nav", "footer", "header"]
+            [
+                "script",
+                "style",
+                "nav",
+                "footer",
+                "header",
+            ]
         ):
             tag.decompose()
 
@@ -52,10 +53,15 @@ class WebExtractor:
             else ""
         )
 
+        parsed_url = urlparse(url)
+
+        domain = parsed_url.netloc
+
         return Document(
             page_content=content,
             metadata={
                 "source": url,
                 "title": title,
+                "domain": domain,
             },
         )
