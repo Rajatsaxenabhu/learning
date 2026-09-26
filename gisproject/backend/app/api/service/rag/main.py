@@ -57,44 +57,18 @@ async def main():
         llm=dev_model,
     )
 
-    documents = [
-        Document(
-            page_content="""
-            EPSG:4326 is the WGS 84 geographic coordinate
-            reference system. It uses latitude and longitude
-            in degrees.
-            """,
-            metadata={
-                "source": "test-memory",
-                "title": "CRS information",
-            },
-        ),
-        Document(
-            page_content="""
-            EPSG:3857 is the Web Mercator projected
-            coordinate reference system. It uses metres
-            as projected X and Y coordinates and is widely
-            used for web mapping.
-            """,
-            metadata={
-                "source": "test-memory",
-                "title": "Web Mercator information",
-            },
-        ),
-    ]
-
-    documents = vector_store.get_documents()
     documents = vector_store.get_documents()
 
     print(
         "Loaded documents:",
         len(documents),
     )
+
     bm25_retriever.add_documents(
         documents
     )
 
-    query = "What are the latest developments in NISAR?"
+    query = "what is nisar"
 
     initial_state = {
         "query": query,
@@ -133,6 +107,8 @@ async def main():
         "freshness_required": False,
         "freshness_reason": "",
 
+        "metrics": {},
+
         "status": "started",
         "answer": "",
 
@@ -159,7 +135,7 @@ async def main():
 
         config = {
             "configurable": {
-                "thread_id": "rag-9-2-test"
+                "thread_id": "rag-10-test"
             }
         }
 
@@ -173,7 +149,7 @@ async def main():
         )
 
         print("\n==============================")
-        print("RAG 9.2 TEST")
+        print("RAG 10 TEST")
         print("==============================")
 
         print(
@@ -215,12 +191,16 @@ async def main():
                 config=config,
             )
 
+            state = await graph.aget_state(
+                config
+            )
+
         print("\n==============================")
         print("ANSWER")
         print("==============================")
 
         print(
-            result.get(
+            state.values.get(
                 "answer",
                 "",
             )
@@ -231,19 +211,37 @@ async def main():
         print("==============================")
 
         print(
-            result.get(
+            state.values.get(
                 "status",
                 "",
             )
         )
 
-        if result.get("errors"):
+        print("\n==============================")
+        print("METRICS")
+        print("==============================")
+
+        metrics = state.values.get(
+            "metrics",
+            {},
+        )
+
+        for key, value in metrics.items():
+
+            if key == "request_start":
+                continue
+
+            print(
+                f"{key}: {value}"
+            )
+
+        if state.values.get("errors"):
 
             print("\n==============================")
             print("ERRORS")
             print("==============================")
 
-            for error in result["errors"]:
+            for error in state.values["errors"]:
                 print(error)
 
 

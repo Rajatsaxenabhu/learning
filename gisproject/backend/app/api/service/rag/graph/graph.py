@@ -52,6 +52,11 @@ def build_rag_graph(
     builder = StateGraph(RAGState)
 
     builder.add_node(
+        "start_request",
+        nodes.start_request,
+    )
+
+    builder.add_node(
         "rewrite",
         nodes.rewrite,
     )
@@ -127,12 +132,22 @@ def build_rag_graph(
     )
 
     builder.add_node(
+        "finish_request",
+        nodes.finish_request,
+    )
+
+    builder.add_node(
         "fail",
         nodes.fail,
     )
 
     builder.add_edge(
         START,
+        "start_request",
+    )
+
+    builder.add_edge(
+        "start_request",
         "rewrite",
     )
 
@@ -244,7 +259,7 @@ def build_rag_graph(
         after_generate,
         {
             "repair_citations": "repair_citations",
-            "end": END,
+            "end": "finish_request",
         },
     )
 
@@ -252,9 +267,14 @@ def build_rag_graph(
         "repair_citations",
         after_repair,
         {
-            "end": END,
+            "end": "finish_request",
             "fail": "fail",
         },
+    )
+
+    builder.add_edge(
+        "finish_request",
+        END,
     )
 
     builder.add_edge(

@@ -3,6 +3,9 @@ from app.api.service.rag.refiner import QueryRefiner
 from app.api.service.rag.query.reqwiter import QueryRewriter
 from app.api.service.rag.retrieval.hybrid import HybridRetriever
 from app.api.service.rag.search.validator import CitationValidator
+from app.api.service.rag.observability.metrics import (
+    RAGMetrics,
+)
 
 from langgraph.types import interrupt
 
@@ -92,8 +95,23 @@ class RAGNodes:
 
     async def search(self, state):
 
+        start = RAGMetrics.start()
+
         print("\n🌐 TAVILY SEARCH CALLED")
-        print(f"Search query: {state['search_query']}")
+        print(
+            f"Search query: {state['search_query']}"
+        )
+
+        metrics = {
+            **state.get("metrics", {}),
+            "search_attempts": (
+                state.get("metrics", {}).get(
+                    "search_attempts",
+                    0,
+                )
+                + 1
+            ),
+        }
 
         try:
 
@@ -101,31 +119,60 @@ class RAGNodes:
                 state["search_query"]
             )
 
+            latency = RAGMetrics.elapsed_ms(
+                start
+            )
+
+            metrics["search_latency_ms"] = (
+                metrics.get(
+                    "search_latency_ms",
+                    0,
+                )
+                + latency
+            )
+
+
+
             if not results:
 
                 return {
                     "search_results": [],
                     "web_search_called": True,
+                    "metrics": metrics,
                     "status": "no_search_results",
                 }
 
             return {
                 "search_results": results,
                 "web_search_called": True,
+                "metrics": metrics,
                 "status": "searched",
             }
 
         except Exception as e:
 
-            print(f"❌ Tavily search failed: {e}")
+            latency = RAGMetrics.elapsed_ms(
+                start
+            )
+
+            metrics["search_latency_ms"] = (
+                metrics.get(
+                    "search_latency_ms",
+                    0,
+                )
+                + latency
+            )
 
             return {
                 "search_results": [],
                 "web_search_called": True,
+                "metrics": metrics,
                 "status": "search_failed",
-                "errors": [str(e)],
+                "errors": [
+                    *state.get("errors", []),
+                    str(e),
+                ],
             }
-
 
     async def extract(self, state):
 
@@ -250,47 +297,113 @@ class RAGNodes:
         }
     async def retrieve(self, state):
 
-        if state["chunks"]:
+        start = RAGMetrics.start()
 
-            self.vector_store.add_documents(
-                state["chunks"]
+        try:
+
+            if state["chunks"]:
+
+                self.vector_store.add_documents(
+                    state["chunks"]
+                )
+
+                self.bm25_retriever.add_documents(
+                    state["chunks"]
+                )
+
+            candidates = self.hybrid_retriever.search(
+                query=state["search_query"],
+                k=15,
+                fetch_k=15,
             )
 
-            self.bm25_retriever.add_documents(
-                state["chunks"]
+            latency = RAGMetrics.elapsed_ms(
+                start
             )
 
-        candidates = self.hybrid_retriever.search(
-            query=state["search_query"],
-            k=15,
-            fetch_k=15,
-        )
+            metrics = {
+                **state.get("metrics", {}),
+                "retrieval_latency_ms": latency,
+                "retrieved_documents": len(
+                    candidates
+                ),
+            }
 
-        return {
-            "candidate_documents": candidates,
-            "status": (
-                "retrieved"
-                if candidates
-                else "retrieval_failed"
-            ),
-        }
+            
 
+            return {
+                "candidate_documents": candidates,
+                "metrics": metrics,
+                "status": (
+                    "retrieved"
+                    if candidates
+                    else "retrieval_failed"
+                ),
+            }
+
+        except Exception as e:
+
+    
+
+            return {
+                "candidate_documents": [],
+                "status": "retrieval_failed",
+                "errors": [
+                    *state.get("errors", []),
+                    str(e),
+                ],
+            }
     async def rerank(self, state):
 
-        documents = self.reranker.rerank(
-            query=state["query"],
-            documents=state["candidate_documents"],
-            top_k=5,
-        )
+        start = RAGMetrics.start()
 
-        return {
-            "retrieved_documents": documents,
-            "status": (
-                "reranked"
-                if documents
-                else "reranking_failed"
-            ),
-        }
+        try:
+
+            documents = state[
+                "candidate_documents"
+            ]
+
+            reranked = self.reranker.rerank(
+                query=state["search_query"],
+                documents=documents,
+            )
+
+            latency = RAGMetrics.elapsed_ms(
+                start
+            )
+
+            metrics = {
+                **state.get("metrics", {}),
+                "rerank_latency_ms": latency,
+                "reranked_documents": len(
+                    reranked
+                ),
+            }
+
+           
+
+            return {
+                "retrieved_documents": reranked,
+                "metrics": metrics,
+                "status": "reranked",
+            }
+
+        except Exception as e:
+
+            return {
+                "retrieved_documents": state[
+                    "candidate_documents"
+                ],
+                "metrics": state.get(
+                    "metrics",
+                    {},
+                ),
+                "status": "rerank_fallback",
+                "errors": [
+                    *state.get("errors", []),
+                    str(e),
+                ],
+            }
     async def retry_search(self, state):
 
         return {
@@ -423,7 +536,22 @@ class RAGNodes:
             "search_reason": "",
             "status": "memory_search",
         }
-  
+    async def start_request(self, state):
+
+        return {
+            "metrics": {
+                **state.get("metrics", {}),
+                "total_latency_ms": 0,
+                "search_latency_ms": 0,
+                "retrieval_latency_ms": 0,
+                "rerank_latency_ms": 0,
+                "generation_latency_ms": 0,
+                "search_attempts": 0,
+                "retrieved_documents": 0,
+                "reranked_documents": 0,
+            },
+            "status": "started",
+        }
     async def detect_search_intent(self, state):
 
         prompt = f"""
@@ -530,6 +658,49 @@ class RAGNodes:
             "status": "success",
         }
 
+    async def start_request(self, state):
+
+        return {
+            "metrics": {
+                **state.get("metrics", {}),
+                "request_start": RAGMetrics.start(),
+                "search_latency_ms": 0,
+                "retrieval_latency_ms": 0,
+                "rerank_latency_ms": 0,
+                "generation_latency_ms": 0,
+                "search_attempts": 0,
+                "retrieved_documents": 0,
+                "reranked_documents": 0,
+            },
+            "status": "started",
+        }
+    async def finish_request(self, state):
+
+        started_at = state.get(
+            "metrics",
+            {},
+        ).get(
+            "request_start",
+        )
+
+        if started_at is None:
+            return {}
+
+        total_latency = RAGMetrics.elapsed_ms(
+            started_at
+        )
+
+        metrics = {
+            **state.get("metrics", {}),
+            "total_latency_ms": total_latency,
+        }
+
+      
+
+        return {
+            "metrics": metrics,
+        }
+
     async def generate(self, state):
 
         approval = interrupt(
@@ -553,9 +724,6 @@ class RAGNodes:
                 "status": "generation_rejected",
             }
 
-        # -----------------------------
-        # Build unique sources
-        # -----------------------------
         sources = []
         source_id_map = {}
 
@@ -581,9 +749,6 @@ class RAGNodes:
                     }
                 )
 
-        # -----------------------------
-        # Build context
-        # -----------------------------
         context_parts = []
 
         for doc in state["retrieved_documents"]:
@@ -609,9 +774,6 @@ class RAGNodes:
 
         context = "\n\n".join(context_parts)
 
-        # -----------------------------
-        # Generate answer
-        # -----------------------------
         prompt = f"""
     You are a helpful web RAG assistant.
 
@@ -647,30 +809,66 @@ class RAGNodes:
     {context}
     """
 
-        response = await self.llm.ainvoke(prompt)
+        start = RAGMetrics.start()
 
-        answer = response.content
+        try:
 
-        # -----------------------------
-        # Validate citations
-        # -----------------------------
+            response = await self.llm.ainvoke(prompt)
+
+            answer = response.content
+
+            latency = RAGMetrics.elapsed_ms(start)
+
+            metrics = {
+                **state.get("metrics", {}),
+                "generation_latency_ms": latency,
+            }
+
+           
+        except Exception as e:
+
+            latency = RAGMetrics.elapsed_ms(start)
+
+           
+
+            return {
+                "answer": "",
+                "sources": sources,
+                "citation_valid": False,
+                "invalid_citations": [],
+                "metrics": {
+                    **state.get("metrics", {}),
+                    "generation_latency_ms": latency,
+                },
+                "status": "generation_failed",
+                "errors": [
+                    *state.get("errors", []),
+                    f"Generation failed: {str(e)}",
+                ],
+            }
+
         validation = self.citation_validator.validate(
             answer=answer,
             sources=sources,
         )
 
         if not validation["valid"]:
+
             return {
                 "answer": answer,
                 "sources": sources,
                 "citation_valid": False,
-                "invalid_citations": validation["invalid_citations"],
+                "invalid_citations": validation[
+                    "invalid_citations"
+                ],
+                "metrics": metrics,
                 "status": "invalid_citations",
                 "errors": [
+                    *state.get("errors", []),
                     (
                         "Invalid citation IDs generated: "
                         f"{validation['invalid_citations']}"
-                    )
+                    ),
                 ],
             }
 
@@ -679,5 +877,6 @@ class RAGNodes:
             "sources": sources,
             "citation_valid": True,
             "invalid_citations": [],
+            "metrics": metrics,
             "status": "success",
         }

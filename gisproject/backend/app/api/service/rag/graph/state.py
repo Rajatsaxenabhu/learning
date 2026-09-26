@@ -1,9 +1,10 @@
 from typing import Any
-
 from langchain_core.documents import Document
 from typing_extensions import TypedDict
 
+
 class RAGState(TypedDict):
+
     query: str
     search_query: str
     seen_queries: list[str]
@@ -39,6 +40,8 @@ class RAGState(TypedDict):
 
     freshness_required: bool
     freshness_reason: str
+
+    metrics: dict[str, Any]
 
     status: str
     answer: str
