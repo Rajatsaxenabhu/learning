@@ -1,6 +1,4 @@
-import asyncio
-
-from langchain_core.documents import Document
+from typing import Any
 
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.types import Command
@@ -20,106 +18,76 @@ from app.api.service.rag.refiner import QueryRefiner
 from app.api.service.rag.graph.graph import build_rag_graph
 
 
-async def main():
+class WebRAG:
 
-    search_service = WebSearch()
+    def __init__(
+        self,
+        checkpoint_path: str = "rag_checkpoints.db",
+        collection_name: str = "web_rag_test",
+        qdrant_url: str = "http://localhost:6333",
+    ):
+        self.checkpoint_path = checkpoint_path
+        self.collection_name = collection_name
+        self.qdrant_url = qdrant_url
 
-    extractor = WebExtractor()
+        self.checkpointer = None
+        self.checkpointer_context = None
+        self.graph = None
 
-    chunker = WebChunker(
-        chunk_size=1000,
-        chunk_overlap=150,
-    )
+    async def initialize(self):
 
-    embedding_service = EmbeddingService()
+        self.checkpointer_context = (
+            AsyncSqliteSaver.from_conn_string(
+                self.checkpoint_path
+            )
+        )
 
-    vector_store = VectorStore(
-        embeddings=embedding_service.embeddings,
-        collection_name="web_rag_test",
-        url="http://localhost:6333",
-    )
+        self.checkpointer = (
+            await self.checkpointer_context.__aenter__()
+        )
 
-    bm25_retriever = BM25Retriever()
+        search_service = WebSearch()
 
-    reranker = Reranker(
-        model_name="BAAI/bge-reranker-base",
-    )
+        extractor = WebExtractor()
 
-    rewriter = QueryRewriter(
-        llm=dev_model,
-    )
+        chunker = WebChunker(
+            chunk_size=1000,
+            chunk_overlap=150,
+        )
 
-    evaluator = RetrievalEvaluator(
-        llm=dev_model,
-    )
+        embedding_service = EmbeddingService()
 
-    refiner = QueryRefiner(
-        llm=dev_model,
-    )
+        vector_store = VectorStore(
+            embeddings=embedding_service.embeddings,
+            collection_name=self.collection_name,
+            url=self.qdrant_url,
+        )
 
-    documents = vector_store.get_documents()
+        bm25_retriever = BM25Retriever()
 
-    print(
-        "Loaded documents:",
-        len(documents),
-    )
+        reranker = Reranker(
+            model_name="BAAI/bge-reranker-base",
+        )
 
-    bm25_retriever.add_documents(
-        documents
-    )
+        rewriter = QueryRewriter(
+            llm=dev_model,
+        )
 
-    query = "what is nisar"
+        evaluator = RetrievalEvaluator(
+            llm=dev_model,
+        )
 
-    initial_state = {
-        "query": query,
-        "search_query": "",
-        "seen_queries": [],
+        refiner = QueryRefiner(
+            llm=dev_model,
+        )
 
-        "search_results": [],
+        documents = vector_store.get_documents()
 
-        "documents": [],
-        "chunks": [],
+        bm25_retriever.add_documents(
+            documents
+        )
 
-        "candidate_documents": [],
-        "retrieved_documents": [],
-
-        "sources": [],
-
-        "missing_information": "",
-        "evaluation_reason": "",
-        "retrieval_sufficient": False,
-
-        "citation_valid": False,
-        "invalid_citations": [],
-
-        "iteration": 0,
-        "max_iterations": 3,
-
-        "search_retry_count": 0,
-        "max_search_retries": 2,
-
-        "cache_hit": False,
-
-        "force_web_search": False,
-        "search_reason": "",
-        "web_search_called": False,
-
-        "freshness_required": False,
-        "freshness_reason": "",
-
-        "metrics": {},
-
-        "status": "started",
-        "answer": "",
-
-        "errors": [],
-    }
-
-    async with AsyncSqliteSaver.from_conn_string(
-        "rag_checkpoints.db"
-    ) as checkpointer:
-
-        graph = build_rag_graph(
+        self.graph = build_rag_graph(
             search_service=search_service,
             extractor=extractor,
             chunker=chunker,
@@ -130,120 +98,143 @@ async def main():
             evaluator=evaluator,
             refiner=refiner,
             llm=dev_model,
-            checkpointer=checkpointer,
+            checkpointer=self.checkpointer,
         )
+
+        return self
+
+    async def query(
+        self,
+        query: str,
+        thread_id: str,
+    ) -> dict[str, Any]:
+
+        if self.graph is None:
+            raise RuntimeError(
+                "WebRAG is not initialized"
+            )
+
+        initial_state = {
+            "query": query,
+            "search_query": "",
+            "seen_queries": [],
+            "search_results": [],
+            "documents": [],
+            "chunks": [],
+            "candidate_documents": [],
+            "retrieved_documents": [],
+            "sources": [],
+            "missing_information": "",
+            "evaluation_reason": "",
+            "retrieval_sufficient": False,
+            "citation_valid": False,
+            "invalid_citations": [],
+            "iteration": 0,
+            "max_iterations": 3,
+            "search_retry_count": 0,
+            "max_search_retries": 2,
+            "cache_hit": False,
+            "force_web_search": False,
+            "search_reason": "",
+            "web_search_called": False,
+            "freshness_required": False,
+            "freshness_reason": "",
+            "metrics": {},
+            "status": "started",
+            "answer": "",
+            "errors": [],
+        }
 
         config = {
             "configurable": {
-                "thread_id": "rag-10-test"
+                "thread_id": thread_id,
             }
         }
 
-        result = await graph.ainvoke(
+        await self.graph.ainvoke(
             initial_state,
             config=config,
         )
 
-        state = await graph.aget_state(
+        return await self.get_state(
+            thread_id
+        )
+
+    async def resume(
+        self,
+        thread_id: str,
+        value: Any,
+    ) -> dict[str, Any]:
+
+        if self.graph is None:
+            raise RuntimeError(
+                "WebRAG is not initialized"
+            )
+
+        config = {
+            "configurable": {
+                "thread_id": thread_id,
+            }
+        }
+
+        await self.graph.ainvoke(
+            Command(resume=value),
+            config=config,
+        )
+
+        return await self.get_state(
+            thread_id
+        )
+
+    async def get_state(
+        self,
+        thread_id: str,
+    ) -> dict[str, Any]:
+
+        config = {
+            "configurable": {
+                "thread_id": thread_id,
+            }
+        }
+
+        state = await self.graph.aget_state(
             config
         )
 
-        print("\n==============================")
-        print("RAG 10 TEST")
-        print("==============================")
-
-        print(
-            "Tavily called:",
-            state.values.get(
-                "web_search_called",
-                False,
-            ),
-        )
-
-        print(
-            "Status:",
-            state.values.get(
-                "status",
-                "",
-            ),
-        )
-
-        print(
-            "Candidate documents:",
-            len(
-                state.values.get(
-                    "candidate_documents",
-                    [],
-                )
-            ),
-        )
-
-        print("\n==============================")
-        print("TASKS")
-        print("==============================")
-
-        print(state.tasks)
-
-        if state.tasks:
-
-            result = await graph.ainvoke(
-                Command(resume="approve"),
-                config=config,
-            )
-
-            state = await graph.aget_state(
-                config
-            )
-
-        print("\n==============================")
-        print("ANSWER")
-        print("==============================")
-
-        print(
-            state.values.get(
+        return {
+            "answer": state.values.get(
                 "answer",
                 "",
-            )
-        )
-
-        print("\n==============================")
-        print("STATUS")
-        print("==============================")
-
-        print(
-            state.values.get(
+            ),
+            "sources": state.values.get(
+                "sources",
+                [],
+            ),
+            "status": state.values.get(
                 "status",
                 "",
+            ),
+            "metrics": state.values.get(
+                "metrics",
+                {},
+            ),
+            "errors": state.values.get(
+                "errors",
+                [],
+            ),
+            "tasks": state.tasks,
+            "thread_id": thread_id,
+        }
+
+    async def close(self):
+
+        if self.checkpointer_context is not None:
+
+            await self.checkpointer_context.__aexit__(
+                None,
+                None,
+                None,
             )
-        )
 
-        print("\n==============================")
-        print("METRICS")
-        print("==============================")
-
-        metrics = state.values.get(
-            "metrics",
-            {},
-        )
-
-        for key, value in metrics.items():
-
-            if key == "request_start":
-                continue
-
-            print(
-                f"{key}: {value}"
-            )
-
-        if state.values.get("errors"):
-
-            print("\n==============================")
-            print("ERRORS")
-            print("==============================")
-
-            for error in state.values["errors"]:
-                print(error)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+            self.checkpointer_context = None
+            self.checkpointer = None
