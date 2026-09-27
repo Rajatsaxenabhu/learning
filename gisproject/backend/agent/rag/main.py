@@ -1,3 +1,4 @@
+
 from typing import Any
 
 from langgraph.types import Command
@@ -54,6 +55,7 @@ class WebRAG:
         self.http_fetcher = None
         self.browser_fetcher = None
         self.fetch_manager = None
+        self.content_validator = None
 
         self.extractor = None
         self.chunker = None
@@ -64,10 +66,6 @@ class WebRAG:
         self.rewriter = None
         self.evaluator = None
         self.refiner = None
-        self.http_fetcher = None
-        self.browser_fetcher = None
-        self.fetch_manager = None
-        self.content_validator = None
 
     async def initialize(self):
 
@@ -272,24 +270,27 @@ class WebRAG:
             config
         )
 
+        values = state.values
+
+       
         return {
-            "answer": state.values.get(
+            "answer": values.get(
                 "answer",
                 "",
             ),
-            "sources": state.values.get(
+            "sources": values.get(
                 "sources",
                 [],
             ),
-            "status": state.values.get(
+            "status": values.get(
                 "status",
                 "",
             ),
-            "metrics": state.values.get(
+            "metrics": values.get(
                 "metrics",
                 {},
             ),
-            "errors": state.values.get(
+            "errors": values.get(
                 "errors",
                 [],
             ),
@@ -303,6 +304,7 @@ class WebRAG:
             return
 
         if self.fetch_manager is not None:
+
             await self.fetch_manager.close()
 
         self.graph = None

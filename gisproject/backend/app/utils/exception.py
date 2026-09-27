@@ -12,7 +12,6 @@ def validate(func):
         try:
             return  await func(*args, **kwargs)
         
-            # first i make for db handling
         except IntegrityError as e:
             cause = getattr(e.orig, "__cause__", None)
 

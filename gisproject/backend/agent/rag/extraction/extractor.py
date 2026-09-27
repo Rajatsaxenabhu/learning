@@ -25,12 +25,6 @@ class WebExtractor:
         result = await self.fetch_manager.fetch(url)
 
         if not result.success:
-            print(
-                f"⚠️ Web extraction failed: "
-                f"url={url} "
-                f"status={result.status_code} "
-                f"error={result.error}"
-            )
 
             return None
 
@@ -47,11 +41,6 @@ class WebExtractor:
             "application/xhtml+xml"
             not in result.content_type.lower()
         ):
-            print(
-                f"⚠️ Unsupported content type: "
-                f"{result.content_type} "
-                f"url={url}"
-            )
 
             return None
 
@@ -115,10 +104,4 @@ class WebExtractor:
             )
 
         except Exception as e:
-
-            print(
-                f"⚠️ HTML extraction failed "
-                f"for {url}: {e}"
-            )
-
             return None

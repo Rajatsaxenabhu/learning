@@ -83,7 +83,6 @@ class UserAgent:
         runtime: AgentRuntime,
         session_id: str,
     ):
-
         self.runtime = runtime
         self.session_id = session_id
 
@@ -178,43 +177,67 @@ class UserAgent:
                 stream_mode=[
                     "messages",
                     "updates",
+                    "custom",
                 ],
             ):
+
+                # ==========================================
+                # MESSAGE STREAM
+                # ==========================================
 
                 if mode == "messages":
 
                     chunk, meta = data
 
+                    node_name = meta.get(
+                        "langgraph_node"
+                    )
+
+                    usage_metadata = getattr(
+                        chunk,
+                        "usage_metadata",
+                        None,
+                    )
+
+                
+
                     if (
-                        meta.get(
-                            "langgraph_node"
-                        ) == "llm"
-                        and chunk.usage_metadata
+                        node_name == "llm"
+                        and usage_metadata
                     ):
-                        used += (
-                            chunk.usage_metadata.get(
-                                "total_tokens",
-                                0,
+
+                        used += usage_metadata.get(
+                            "total_tokens",
+                            0,
+                        )
+
+
+                elif mode == "custom":
+
+                    if (
+                        isinstance(data, dict)
+                        and data.get("type")
+                        == "answer_token"
+                    ):
+
+                        await on_token(
+                            str(
+                                data["content"]
                             )
                         )
+                elif mode == "updates":
 
-                    if (
-                        meta.get(
-                            "langgraph_node"
-                        ) == "llm"
-                        and chunk.content
-                    ):
-                        await on_token(
-                            str(chunk.content)
+
+
+                    if "__interrupt__" in data:
+
+                        interrupt_payload = (
+                            data[
+                                "__interrupt__"
+                            ][0].value
                         )
 
-                elif "__interrupt__" in data:
-
-                    interrupt_payload = (
-                        data[
-                            "__interrupt__"
-                        ][0].value
-                    )
+    
 
             if interrupt_payload is None:
 

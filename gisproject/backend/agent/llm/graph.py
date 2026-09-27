@@ -2,7 +2,11 @@ from langchain_core.messages import (
     HumanMessage,
     SystemMessage,
     ToolMessage,
+    AIMessage
 )
+
+from langgraph.config import get_stream_writer
+
 from langchain_core.tools import StructuredTool
 
 from langgraph.graph import (
@@ -302,13 +306,10 @@ def make_evidence_evaluation_node(llm):
     return evidence_evaluation_node
 
 
+
 def make_evidence_quality_node(llm):
 
-    evaluate = (
-        make_evidence_quality_evaluator(
-            llm
-        )
-    )
+    evaluate = make_evidence_quality_evaluator(llm)
 
     async def evidence_quality_node(
         state: AgentState,
@@ -322,65 +323,152 @@ def make_evidence_quality_node(llm):
             ),
         )
 
+
+        if result is None:
+
+            return {
+                "evidence_quality": "weak",
+                "citation_valid": False,
+                "citation_errors": [
+                    "Evidence quality evaluator "
+                    "returned no result."
+                ],
+            }
+
         return {
             "evidence_quality": result.quality,
-            "citation_valid": (
-                result.citation_valid
-            ),
+            "citation_valid": result.citation_valid,
             "citation_errors": result.errors,
         }
 
     return evidence_quality_node
 
 
+
 def make_final_answer_node(llm):
 
-    async def final_answer_node(
-        state: AgentState,
-    ):
+    async def final_answer(state):
 
-        response = await llm.ainvoke(
-            [
-                SystemMessage(
-                    content=(
-                        "You are the final answer generator "
-                        "for a GIS research assistant.\n\n"
-                        "Answer the user's question using "
-                        "the available evidence.\n\n"
-                        "Rules:\n"
-                        "- Use only information supported "
-                        "by the evidence.\n"
-                        "- Do not invent information.\n"
-                        "- If evidence is incomplete, "
-                        "state the limitation.\n"
-                        "- Prefer concise and direct answers.\n"
-                        "- When source information is available, "
-                        "include appropriate source references."
-                    )
-                ),
-                HumanMessage(
-                    content=(
-                        f"User question:\n"
-                        f"{state['query']}\n\n"
-                        f"Evidence:\n"
-                        f"{state.get('evidence', [])}\n\n"
-                        f"Evidence evaluation:\n"
-                        f"{state.get('evaluation_reason', '')}\n\n"
-                        f"Evidence quality:\n"
-                        f"{state.get('evidence_quality', '')}\n\n"
-                        f"Citation errors:\n"
-                        f"{state.get('citation_errors', [])}"
-                    )
-                ),
-            ]
+        query = state["query"]
+
+        evidence = state.get(
+            "evidence",
+            [],
         )
 
+        evaluation_reason = state.get(
+            "evaluation_reason"
+        )
+
+        evidence_quality = state.get(
+            "evidence_quality"
+        )
+
+        citation_errors = state.get(
+            "citation_errors",
+            [],
+        )
+
+        prompt = f"""
+You are the final answer generator for a GIS research assistant.
+
+User question:
+{query}
+
+Evidence collected by the research system:
+{evidence}
+
+Evidence evaluation:
+{evaluation_reason}
+
+Evidence quality:
+{evidence_quality}
+
+Citation errors:
+{citation_errors}
+
+Rules:
+
+1. Answer the user's question directly.
+
+2. Use the collected evidence as the authoritative
+   source for factual claims.
+
+3. For runtime/tool results such as current date,
+   current time, system state, or application state,
+   treat the tool result as authoritative.
+
+4. Never replace a runtime/tool result with your
+   pretrained knowledge.
+
+5. If the user asks for the current date or time,
+   use the result from get_current_datetime.
+
+6. For web research, use the retrieved sources
+   to support factual claims.
+
+7. Do not invent facts that are not supported
+   by the evidence.
+
+8. Do not mention internal agent steps.
+
+9. Do not mention evidence evaluation.
+
+10. Do not mention internal tools unless the user
+    explicitly asks how the answer was obtained.
+
+11. If sources are available, cite the relevant
+    sources in the final answer.
+
+12. If the evidence does not support a claim,
+    say that the available evidence does not
+    establish it.
+"""
+
+        messages = [
+            *state["messages"],
+            SystemMessage(
+                content=prompt
+            ),
+        ]
+
+        writer = get_stream_writer()
+
+        response_content = ""
+
+        async for chunk in llm.astream(
+            messages
+        ):
+
+            if not chunk.content:
+                continue
+
+            content = str(
+                chunk.content
+            )
+
+            response_content += content
+
+            writer(
+                {
+                    "type": "answer_token",
+                    "content": content,
+                }
+            )
+
         return {
-            "messages": [response],
-            "final_answer": response.content,
+            "messages": [
+                AIMessage(
+                    content=response_content
+                )
+            ],
+            "final_answer": response_content,
         }
 
-    return final_answer_node
+    return final_answer
+
+
+
 
 
 def route_after_llm(
@@ -502,14 +590,16 @@ def route_after_quality(
         MAX_RESEARCH_ITERATIONS,
     )
 
+
     if citation_valid:
+
         return "answer"
 
     if research_iteration >= max_iterations:
+
         return "answer"
 
     return "llm"
-
 
 async def build_graph(
     mcp_manager,

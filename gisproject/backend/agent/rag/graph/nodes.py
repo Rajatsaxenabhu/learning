@@ -4,8 +4,11 @@ from agent.rag.query.reqwiter import QueryRewriter
 from agent.rag.refiner import QueryRefiner
 from agent.rag.retrieval.hybrid import HybridRetriever
 from agent.rag.search.validator import CitationValidator
+
 from langgraph.types import interrupt
+
 from urllib.parse import urlparse
+
 from langchain_core.documents import Document
 
 
@@ -34,6 +37,7 @@ class RAGNodes:
         self.evaluator = evaluator
         self.refiner = refiner
         self.llm = llm
+
         self.citation_validator = CitationValidator()
 
         self.hybrid_retriever = HybridRetriever(
@@ -63,6 +67,7 @@ class RAGNodes:
         search_query = await self.rewriter.rewrite(
             state["query"]
         )
+
 
         return {
             "search_query": search_query,
@@ -246,74 +251,70 @@ FRESH
 
     async def search(self, state):
 
-        start = RAGMetrics.start()
-
-        print("\n🌐 TAVILY SEARCH CALLED")
-        print(
-            f"Search query: {state['search_query']}"
-        )
-
-        metrics = {
-            **state.get("metrics", {}),
-            "search_attempts": (
-                state.get("metrics", {}).get(
-                    "search_attempts",
-                    0,
-                )
-                + 1
-            ),
-        }
 
         try:
+
+            start = RAGMetrics.start()
+
             results = await self.search_service.search(
                 state["search_query"]
             )
 
             latency = RAGMetrics.elapsed_ms(start)
 
-            metrics["search_latency_ms"] = (
-                metrics.get(
-                    "search_latency_ms",
-                    0,
-                )
-                + latency
-            )
-
             if not results:
+
                 return {
                     "search_results": [],
                     "web_search_called": True,
-                    "metrics": metrics,
+                    "metrics": {
+                        **state.get("metrics", {}),
+                        "search_latency_ms": latency,
+                        "search_attempts": (
+                            state.get(
+                                "metrics",
+                                {},
+                            ).get(
+                                "search_attempts",
+                                0,
+                            )
+                            + 1
+                        ),
+                    },
                     "status": "no_search_results",
                 }
+
 
             return {
                 "search_results": results,
                 "web_search_called": True,
-                "metrics": metrics,
+                "metrics": {
+                    **state.get("metrics", {}),
+                    "search_latency_ms": latency,
+                    "search_attempts": (
+                        state.get(
+                            "metrics",
+                            {},
+                        ).get(
+                            "search_attempts",
+                            0,
+                        )
+                        + 1
+                    ),
+                },
                 "status": "searched",
             }
 
-        except Exception as exc:
+        except Exception as e:
 
-            latency = RAGMetrics.elapsed_ms(start)
-
-            metrics["search_latency_ms"] = (
-                metrics.get(
-                    "search_latency_ms",
-                    0,
-                )
-                + latency
-            )
 
             return {
                 "search_results": [],
                 "web_search_called": True,
-                "metrics": metrics,
                 "status": "search_failed",
                 "errors": [
                     *state.get("errors", []),
-                    str(exc),
+                    str(e),
                 ],
             }
 
@@ -326,17 +327,17 @@ FRESH
             "status": "retrying_search",
         }
 
-
-
-
     async def extract(self, state):
 
         documents = []
 
-        for result in state.get(
+        search_results = state.get(
             "search_results",
             [],
-        ):
+        )
+
+
+        for result in search_results:
 
             url = result.get(
                 "url",
@@ -352,14 +353,14 @@ FRESH
 
             if document is not None:
 
-                documents.append(
-                    document
-                )
+    
+
+                documents.append(document)
 
                 continue
 
             snippet = result.get(
-                "snippet",
+                "content",
                 "",
             )
 
@@ -370,20 +371,11 @@ FRESH
 
             if not snippet:
 
-                print(
-                    f"⚠️ No snippet fallback: {url}"
-                )
-
                 continue
 
             parsed_url = urlparse(url)
 
             domain = parsed_url.netloc
-
-            print(
-                f"⚠️ Using Tavily snippet fallback: "
-                f"{url}"
-            )
 
             documents.append(
                 Document(
@@ -401,14 +393,29 @@ FRESH
                 )
             )
 
+
         return {
             "documents": documents,
+            "status": (
+                "extracted"
+                if documents
+                else "extraction_failed"
+            ),
         }
+
     async def chunk(self, state):
 
-        chunks = self.chunker.split(
-            state["documents"]
+        documents = state.get(
+            "documents",
+            [],
         )
+
+
+        chunks = self.chunker.split(
+            documents
+        )
+
+
 
         return {
             "chunks": chunks,
@@ -425,14 +432,21 @@ FRESH
 
         try:
 
-            if state["chunks"]:
+            chunks = state.get(
+                "chunks",
+                [],
+            )
+
+
+            if chunks:
 
                 self.vector_store.add_documents(
-                    state["chunks"]
+                    chunks
                 )
 
+
                 self.bm25_retriever.add_documents(
-                    state["chunks"]
+                    chunks
                 )
 
             candidates = self.hybrid_retriever.search(
@@ -441,8 +455,11 @@ FRESH
                 fetch_k=15,
             )
 
-            latency = RAGMetrics.elapsed_ms(start)
+            latency = RAGMetrics.elapsed_ms(
+                start
+            )
 
+        
             metrics = {
                 **state.get("metrics", {}),
                 "retrieval_latency_ms": latency,
@@ -478,16 +495,22 @@ FRESH
 
         try:
 
-            documents = state[
-                "candidate_documents"
-            ]
+            documents = state.get(
+                "candidate_documents",
+                [],
+            )
+
 
             reranked = self.reranker.rerank(
                 query=state["search_query"],
                 documents=documents,
             )
 
-            latency = RAGMetrics.elapsed_ms(start)
+            latency = RAGMetrics.elapsed_ms(
+                start
+            )
+
+        
 
             metrics = {
                 **state.get("metrics", {}),
@@ -505,10 +528,13 @@ FRESH
 
         except Exception as exc:
 
+            documents = state.get(
+                "candidate_documents",
+                [],
+            )
+
             return {
-                "retrieved_documents": state[
-                    "candidate_documents"
-                ],
+                "retrieved_documents": documents,
                 "metrics": state.get(
                     "metrics",
                     {},
@@ -522,9 +548,14 @@ FRESH
 
     async def evaluate(self, state):
 
+        documents = state.get(
+            "retrieved_documents",
+            [],
+        )
+
         evaluation = await self.evaluator.evaluate(
             query=state["query"],
-            documents=state["retrieved_documents"],
+            documents=documents,
         )
 
         return {
@@ -558,12 +589,15 @@ FRESH
         )
 
         if normalized_query in seen_queries:
+
             return {
                 "search_query": search_query,
                 "status": "duplicate_query",
             }
 
-        seen_queries.append(normalized_query)
+        seen_queries.append(
+            normalized_query
+        )
 
         return {
             "search_query": search_query,
@@ -588,8 +622,15 @@ FRESH
 
     async def repair_citations(self, state):
 
-        sources = state.get("sources", [])
-        answer = state.get("answer", "")
+        sources = state.get(
+            "sources",
+            [],
+        )
+
+        answer = state.get(
+            "answer",
+            "",
+        )
 
         source_context = "\n".join(
             f"[{source['id']}] "
@@ -621,7 +662,9 @@ Rules:
 - Return ONLY the corrected answer.
 """
 
-        response = await self.llm.ainvoke(prompt)
+        response = await self.llm.ainvoke(
+            prompt
+        )
 
         repaired_answer = response.content
 
@@ -631,6 +674,7 @@ Rules:
         )
 
         if not validation["valid"]:
+
             return {
                 "answer": repaired_answer,
                 "citation_valid": False,
@@ -641,11 +685,12 @@ Rules:
                 ),
                 "status": "citation_repair_failed",
                 "errors": [
+                    *state.get("errors", []),
                     (
                         "Citation repair failed. "
                         f"Invalid citations: "
                         f"{validation['invalid_citations']}"
-                    )
+                    ),
                 ],
             }
 
@@ -658,47 +703,15 @@ Rules:
 
     async def generate(self, state):
 
-        approval = interrupt(
-            {
-                "type": "generation_approval",
-                "message": (
-                    "Retrieved information is ready. "
-                    "Generate the final answer?"
-                ),
-                "query": state["query"],
-                "sources": [
-                    {
-                        "title": doc.metadata.get(
-                            "title",
-                            "",
-                        ),
-                        "source": doc.metadata.get(
-                            "source",
-                            "",
-                        ),
-                    }
-                    for doc in state[
-                        "retrieved_documents"
-                    ]
-                ],
-            }
-        )
-
-        if approval != "approve":
-            return {
-                "answer": (
-                    "Final answer generation "
-                    "was rejected."
-                ),
-                "status": "generation_rejected",
-            }
-
         sources = []
         source_id_map = {}
 
-        for doc in state[
-            "retrieved_documents"
-        ]:
+        retrieved_documents = state.get(
+            "retrieved_documents",
+            [],
+        )
+
+        for doc in retrieved_documents:
 
             source = doc.metadata.get(
                 "source",
@@ -731,9 +744,7 @@ Rules:
 
         context_parts = []
 
-        for doc in state[
-            "retrieved_documents"
-        ]:
+        for doc in retrieved_documents:
 
             source = doc.metadata.get(
                 "source",
@@ -752,63 +763,81 @@ Rules:
 
             context_parts.append(
                 f"""
-SOURCE [{source_id}]
-TITLE: {title}
-URL: {source}
+    SOURCE [{source_id}]
+    TITLE: {title}
+    URL: {source}
 
-CONTENT:
-{doc.page_content}
-"""
+    CONTENT:
+    {doc.page_content}
+    """
             )
 
         context = "\n\n".join(
             context_parts
         )
 
+        if not context:
+
+            return {
+                "answer": "",
+                "sources": [],
+                "citation_valid": False,
+                "invalid_citations": [],
+                "status": "generation_failed",
+                "errors": [
+                    *state.get("errors", []),
+                    "No source context available for generation.",
+                ],
+            }
+
         prompt = f"""
-You are a helpful web RAG assistant.
+    You are a helpful web RAG assistant.
 
-Answer the user's question using ONLY
-the information provided in the sources.
+    Answer the user's question using ONLY
+    the information provided in the sources.
 
-Every factual claim that comes from a source
-must include an inline citation.
+    Every factual claim that comes from a source
+    must include an inline citation.
 
-Citation format:
+    Citation format:
 
-[1]
-[2]
-[3]
+    [1]
+    [2]
+    [3]
 
-Rules:
+    Rules:
 
-- Use ONLY the provided sources.
-- Do not use your own knowledge.
-- Do not invent facts.
-- Do not invent citations.
-- Only use citation IDs that exist in the provided sources.
-- Every important factual claim must have a citation.
-- If multiple sources support a claim, cite all relevant sources.
-- If the sources are insufficient, say so clearly.
+    - Use ONLY the provided sources.
+    - Do not use your own knowledge.
+    - Do not invent facts.
+    - Do not invent citations.
+    - Only use citation IDs that exist in the provided sources.
+    - Every important factual claim must have a citation.
+    - If multiple sources support a claim, cite all relevant sources.
+    - If the sources are insufficient, say so clearly.
 
-User question:
+    User question:
 
-{state["query"]}
+    {state["query"]}
 
-Sources:
+    Sources:
 
-{context}
-"""
+    {context}
+    """
 
         start = RAGMetrics.start()
 
         try:
 
-            response = await self.llm.ainvoke(prompt)
+            response = await self.llm.ainvoke(
+                prompt
+            )
 
             answer = response.content
 
-            latency = RAGMetrics.elapsed_ms(start)
+            latency = RAGMetrics.elapsed_ms(
+                start
+            )
 
             metrics = {
                 **state.get("metrics", {}),
@@ -817,7 +846,9 @@ Sources:
 
         except Exception as exc:
 
-            latency = RAGMetrics.elapsed_ms(start)
+            latency = RAGMetrics.elapsed_ms(
+                start
+            )
 
             return {
                 "answer": "",
@@ -841,7 +872,6 @@ Sources:
         )
 
         if not validation["valid"]:
-
             return {
                 "answer": answer,
                 "sources": sources,
@@ -891,3 +921,4 @@ Sources:
         return {
             "metrics": metrics,
         }
+

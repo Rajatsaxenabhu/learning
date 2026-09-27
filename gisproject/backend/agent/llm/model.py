@@ -7,6 +7,8 @@ model = ChatOpenAI(
     model=ModelConfig.model,
     base_url=ModelConfig.base_url,
     api_key=ModelConfig.api_key,
+    streaming=True,
+    max_tokens=5000,
     stream_usage=True,
 )
 

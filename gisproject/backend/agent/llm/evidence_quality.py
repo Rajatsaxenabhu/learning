@@ -1,6 +1,6 @@
-from typing import Literal
-
+from langchain_core.messages import HumanMessage
 from pydantic import BaseModel, Field
+from typing import Literal
 
 
 class EvidenceQuality(BaseModel):
@@ -14,17 +14,25 @@ class EvidenceQuality(BaseModel):
     )
 
     citation_valid: bool = Field(
-        description="Whether the evidence can support citations for the answer."
+        description=(
+            "Whether the evidence can support "
+            "citations for the answer."
+        )
     )
 
     errors: list[str] = Field(
         default_factory=list,
-        description="Problems with the evidence or citations."
+        description=(
+            "Problems with the evidence or citations."
+        ),
     )
+
+
 def make_evidence_quality_evaluator(llm):
 
     evaluator = llm.with_structured_output(
-        EvidenceQuality
+        EvidenceQuality,
+        method="function_calling",
     )
 
     async def evaluate(
@@ -41,6 +49,8 @@ User question:
 Evidence:
 {evidence}
 
+Evaluate the evidence.
+
 Check:
 
 1. Does the evidence actually support the answer?
@@ -49,14 +59,51 @@ Check:
 4. Are important claims unsupported?
 5. Can the final answer cite the evidence?
 
-Return the structured evaluation.
+Return ONLY the structured result.
+
+If the evidence is sufficient:
+- quality = "strong" or "acceptable"
+- citation_valid = true
+- errors = []
+
+If the evidence is insufficient:
+- quality = "weak"
+- citation_valid = false
+- errors must explain why.
 """
 
-        result = await evaluator.ainvoke(prompt)
+        try:
 
-        print("QUALITY TYPE:", type(result))
-        print("QUALITY RESULT:", result)
+            result = await evaluator.ainvoke(
+                [
+                    HumanMessage(
+                        content=prompt
+                    )
+                ]
+            )
 
-        return result
+            if result is None:
+                return EvidenceQuality(
+                    quality="weak",
+                    citation_valid=False,
+                    errors=[
+                        "Evidence quality evaluator "
+                        "returned no result."
+                    ],
+                )
+
+            return result
+
+        except Exception as e:
+
+            return EvidenceQuality(
+                quality="weak",
+                citation_valid=False,
+                errors=[
+                    f"Evidence quality evaluation "
+                    f"failed: {e}"
+                ],
+            )
 
     return evaluate
+

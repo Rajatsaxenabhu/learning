@@ -58,10 +58,6 @@ Rules:
 Return only the structured evaluation.
 """
         result = await evaluator.ainvoke(prompt)
-
-        print("EVALUATOR TYPE:", type(result))
-        print("EVALUATOR RESULT:", result)
-
         return result
     
 

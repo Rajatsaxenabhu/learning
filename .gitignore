@@ -51,6 +51,8 @@ frontend/next-env.d.ts
 
 # Runtime data (uploads, chunks, generated outputs)
 gisproject/backend/temp/
+gisproject/backend/media/
+gisproject/backend/logs/
 
 # Local databases (e.g. LangGraph checkpoints)
 *.db
