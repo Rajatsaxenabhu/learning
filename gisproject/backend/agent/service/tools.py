@@ -20,12 +20,18 @@ async def resolve_dataset_args(kwargs: dict[str, Any]) -> dict[str, Any]:
     for name, value in kwargs.items():
         if isinstance(value, str) and DATASET_ID_RE.match(value):
             dataset = await AsyncRedisManager().get_json(value)
+
             if not dataset:
-                raise ToolException(f"Dataset {value} is invalid or expired")
+                raise ToolException(
+                    f"Dataset {value} is invalid or expired"
+                )
+
             value = dataset["path"]
 
         if name.endswith("_path") and isinstance(value, str):
-            if not Path(value).resolve().is_relative_to(allowed_root):
+            if not Path(value).resolve().is_relative_to(
+                allowed_root
+            ):
                 raise ToolException(
                     f"'{name}' must be an uploaded dataset_id, not a file path"
                 )
@@ -37,7 +43,11 @@ async def resolve_dataset_args(kwargs: dict[str, Any]) -> dict[str, Any]:
 
 def is_read_only(mcp_tool) -> bool:
     annotations = mcp_tool.annotations
-    return bool(annotations and annotations.read_only_hint)
+
+    return bool(
+        annotations
+        and annotations.read_only_hint
+    )
 
 
 def create_args_schema(mcp_tool):
@@ -48,21 +58,42 @@ def create_args_schema(mcp_tool):
     ref = payload_schema.get("$ref")
 
     if ref:
-        payload_schema = schema["$defs"][ref.rsplit("/", 1)[-1]]
+        payload_schema = schema["$defs"][
+            ref.rsplit("/", 1)[-1]
+        ]
 
-    properties = payload_schema.get("properties", {})
-    required = set(payload_schema.get("required", []))
+    properties = payload_schema.get(
+        "properties",
+        {}
+    )
+
+    required = set(
+        payload_schema.get(
+            "required",
+            []
+        )
+    )
 
     fields = {}
 
     for name, definition in properties.items():
+
         field_type = str
 
         fields[name] = (
-            field_type if name in required else field_type | None,
+            field_type
+            if name in required
+            else field_type | None,
             Field(
-                default=... if name in required else None,
-                description=definition.get("description", ""),
+                default=(
+                    ...
+                    if name in required
+                    else None
+                ),
+                description=definition.get(
+                    "description",
+                    "",
+                ),
             ),
         )
 
@@ -77,29 +108,50 @@ def create_mcp_tool(
     server_name: str,
     mcp_tool,
 ):
-    args_schema = create_args_schema(mcp_tool)
 
-    async def call_mcp_tool(**kwargs: Any):
-        client = mcp_manager.get(server_name)
+    args_schema = create_args_schema(
+        mcp_tool
+    )
+
+    async def call_mcp_tool(
+        **kwargs: Any
+    ):
+
+        client = mcp_manager.get(
+            server_name
+        )
 
         result = await client.call_tool(
             mcp_tool.name,
             {
-                "payload": await resolve_dataset_args(kwargs),
+                "payload": await resolve_dataset_args(
+                    kwargs
+                ),
             },
         )
 
         if result.structured_content is not None:
-            text = json.dumps(result.structured_content)
+
+            text = json.dumps(
+                result.structured_content
+            )
+
         else:
+
             text = "\n".join(
                 block.text
                 for block in result.content
-                if getattr(block, "text", None)
+                if getattr(
+                    block,
+                    "text",
+                    None,
+                )
             )
 
         if result.is_error:
-            raise ToolException(text or "Tool call failed")
+            raise ToolException(
+                text or "Tool call failed"
+            )
 
         return text
 
@@ -108,14 +160,21 @@ def create_mcp_tool(
         name=mcp_tool.name,
         description=mcp_tool.description or "",
         args_schema=args_schema,
-        metadata={"read_only": is_read_only(mcp_tool)},
+        metadata={
+            "read_only": is_read_only(mcp_tool),
+            "source": "gis_mcp",
+        },
     )
+
 
 async def discover_tools(
     mcp_manager,
     server_name: str,
 ):
-    client = mcp_manager.get(server_name)
+
+    client = mcp_manager.get(
+        server_name
+    )
 
     mcp_tools = await client.list_tools()
 

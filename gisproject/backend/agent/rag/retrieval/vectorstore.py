@@ -10,7 +10,7 @@ class VectorStore:
         self,
         embeddings,
         collection_name: str = "web_rag",
-        url: str = "http://localhost:6333",
+        url: str = "http://qdrant:6333",
     ):
 
         self.client = QdrantClient(

@@ -1,6 +1,6 @@
 import asyncio
 
-from app.api.service.rag.main import WebRAG
+from agent.rag.main import WebRAG
 
 
 async def main():

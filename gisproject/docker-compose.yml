@@ -76,6 +76,7 @@ services:
     volumes:
       - ./backend:/home/app
       - backend-venv:/home/app/.venv
+    gpus: all
     ports:
       - "7100:7000"
     env_file:

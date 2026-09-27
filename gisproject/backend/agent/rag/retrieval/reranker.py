@@ -5,9 +5,13 @@ from sentence_transformers import CrossEncoder
 class Reranker:
     def __init__(
         self,
-        model_name: str = "BAAI/bge-reranker-base",
+        model_name: str = "/home/app/media/models/bge-reranker-base",
+        device: str = "cuda", # "cuda"
     ):
-        self.model = CrossEncoder(model_name)
+        self.model = CrossEncoder(
+            model_name,
+            device=device,
+        )
 
     def rerank(
         self,
@@ -15,7 +19,6 @@ class Reranker:
         documents: list[Document],
         top_k: int = 5,
     ) -> list[Document]:
-
         if not documents:
             return []
 

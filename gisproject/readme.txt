@@ -1,3 +1,5 @@
+uv run python -c "from huggingface_hub import snapshot_download; snapshot_download('BAAI/bge-reranker-base', local_dir='./models/bge-reranker-base')"
+
 
 gisproject/
 ├── pyproject.toml            # move into backend/ once the frontend exists (see note below)
