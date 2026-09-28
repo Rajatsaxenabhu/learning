@@ -4,8 +4,8 @@ from agent.rag.query.reqwiter import QueryRewriter
 from agent.rag.refiner import QueryRefiner
 from agent.rag.retrieval.hybrid import HybridRetriever
 from agent.rag.search.validator import CitationValidator
+import anyio
 
-from langgraph.types import interrupt
 
 from urllib.parse import urlparse
 
@@ -46,6 +46,7 @@ class RAGNodes:
         )
 
     async def start_request(self, state):
+        self.bm25_retriever.clear()
 
         return {
             "metrics": {
@@ -194,7 +195,7 @@ FRESH
 
     async def retrieve_memory(self, state):
 
-        candidates = self.hybrid_retriever.search(
+        candidates = await self.hybrid_retriever.search(
             query=state["search_query"],
             k=10,
             fetch_k=15,
@@ -327,15 +328,28 @@ FRESH
             "status": "retrying_search",
         }
 
-    async def extract(self, state):
 
-        documents = []
+    async def extract(self, state):
 
         search_results = state.get(
             "search_results",
             [],
         )
 
+        urls = [
+            result.get("url", "")
+            for result in search_results
+            if result.get("url")
+        ]
+
+        documents = await self.extractor.extract_concurrent(
+            urls
+        )
+
+        extracted_urls = {
+            document.metadata.get("source")
+            for document in documents
+        }
 
         for result in search_results:
 
@@ -347,16 +361,7 @@ FRESH
             if not url:
                 continue
 
-            document = await self.extractor.extract(
-                url
-            )
-
-            if document is not None:
-
-    
-
-                documents.append(document)
-
+            if url in extracted_urls:
                 continue
 
             snippet = result.get(
@@ -364,18 +369,15 @@ FRESH
                 "",
             )
 
+            if not snippet:
+                continue
+
             title = result.get(
                 "title",
                 "",
             )
 
-            if not snippet:
-
-                continue
-
             parsed_url = urlparse(url)
-
-            domain = parsed_url.netloc
 
             documents.append(
                 Document(
@@ -384,7 +386,7 @@ FRESH
                         "source": url,
                         "final_url": url,
                         "title": title,
-                        "domain": domain,
+                        "domain": parsed_url.netloc,
                         "source_type": "tavily_snippet",
                         "fetch_method": "tavily",
                         "status_code": None,
@@ -392,7 +394,6 @@ FRESH
                     },
                 )
             )
-
 
         return {
             "documents": documents,
@@ -426,6 +427,7 @@ FRESH
             ),
         }
 
+
     async def retrieve(self, state):
 
         start = RAGMetrics.start()
@@ -437,19 +439,19 @@ FRESH
                 [],
             )
 
-
             if chunks:
 
                 self.vector_store.add_documents(
                     chunks
                 )
 
-
                 self.bm25_retriever.add_documents(
                     chunks
                 )
 
-            candidates = self.hybrid_retriever.search(
+                self.bm25_retriever.build()
+
+            candidates = await self.hybrid_retriever.search(
                 query=state["search_query"],
                 k=15,
                 fetch_k=15,
@@ -459,7 +461,6 @@ FRESH
                 start
             )
 
-        
             metrics = {
                 **state.get("metrics", {}),
                 "retrieval_latency_ms": latency,
@@ -500,17 +501,15 @@ FRESH
                 [],
             )
 
-
-            reranked = self.reranker.rerank(
-                query=state["search_query"],
-                documents=documents,
+            reranked = await anyio.to_thread.run_sync(
+                self.reranker.rerank,
+                state["search_query"],
+                documents,
             )
 
             latency = RAGMetrics.elapsed_ms(
                 start
             )
-
-        
 
             metrics = {
                 **state.get("metrics", {}),
@@ -546,30 +545,6 @@ FRESH
                 ],
             }
 
-    async def evaluate(self, state):
-
-        documents = state.get(
-            "retrieved_documents",
-            [],
-        )
-
-        evaluation = await self.evaluator.evaluate(
-            query=state["query"],
-            documents=documents,
-        )
-
-        return {
-            "retrieval_sufficient": evaluation[
-                "sufficient"
-            ],
-            "evaluation_reason": evaluation[
-                "reason"
-            ],
-            "missing_information": evaluation[
-                "missing_information"
-            ],
-            "status": "evaluated",
-        }
 
     async def refine(self, state):
 
@@ -921,4 +896,31 @@ Rules:
         return {
             "metrics": metrics,
         }
+
+    async def evaluate(self, state):
+
+        documents = state.get(
+            "retrieved_documents",
+            [],
+        )
+
+        evaluation = await self.evaluator.evaluate(
+            query=state["query"],
+            documents=documents,
+        )
+
+        return {
+            "retrieval_sufficient": evaluation[
+                "sufficient"
+            ],
+            "evaluation_reason": evaluation[
+                "reason"
+            ],
+            "missing_information": evaluation[
+                "missing_information"
+            ],
+            "status": "evaluated",
+        }
+
+
 

@@ -5,6 +5,16 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@theme {
+    --animate-marquee: marquee 32s linear infinite;
+}
+
+@keyframes marquee {
+    to {
+        transform: translateX(-50%);
+    }
+}
+
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;

@@ -1,3 +1,5 @@
+import anyio
+
 from agent.rag.extraction.fetcher.browser import (
     BrowserFetcher,
 )
@@ -17,11 +19,16 @@ class FetchManager:
         http_fetcher: HTTPFetcher,
         browser_fetcher: BrowserFetcher,
         validator: ContentValidator,
+        max_concurrency: int = 5,
     ):
 
         self.http_fetcher = http_fetcher
         self.browser_fetcher = browser_fetcher
         self.validator = validator
+
+        self.limiter = anyio.CapacityLimiter(
+            max_concurrency
+        )
 
     async def start(self):
 
@@ -37,7 +44,7 @@ class FetchManager:
         self,
         url: str,
     ) -> FetchResult:
-
+        print("start fetch ",url)
         http_result = (
             await self.http_fetcher.fetch(url)
         )
@@ -80,6 +87,58 @@ class FetchManager:
             )
 
         return http_result
+
+    async def fetch_many(
+        self,
+        urls: list[str],
+    ) -> list[FetchResult]:
+
+        results: list[FetchResult | None] = [
+            None
+            for _ in urls
+        ]
+
+        async def fetch_one(
+            index: int,
+            url: str,
+        ):
+
+            try:
+
+                async with self.limiter:
+
+                    results[index] = await self.fetch(
+                        url
+                    )
+
+            except Exception as e:
+
+                results[index] = FetchResult(
+                    url=url,
+                    final_url=None,
+                    success=False,
+                    status_code=None,
+                    content=None,
+                    content_type=None,
+                    method="failed",
+                    error=str(e),
+                )
+
+        async with anyio.create_task_group() as tg:
+
+            for index, url in enumerate(urls):
+
+                tg.start_soon(
+                    fetch_one,
+                    index,
+                    url,
+                )
+
+        return [
+            result
+            for result in results
+            if result is not None
+        ]
 
     def _should_use_browser(
         self,

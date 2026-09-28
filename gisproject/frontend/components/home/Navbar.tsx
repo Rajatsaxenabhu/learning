@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
 
 const links = [
-  { href: '#features', label: 'Features' },
-  { href: '#how-it-works', label: 'How it works' },
-  { href: '#tools', label: 'Tools' },
+  { href: '/', label: 'Home' },
+  { href: '/#features', label: 'Features' },
+  { href: '/#tools', label: 'Tools' },
+  { href: '/about', label: 'About' },
 ]
 
 export function Navbar() {
@@ -19,9 +20,9 @@ export function Navbar() {
         </Link>
         <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
           {links.map((l) => (
-            <a key={l.href} href={l.href} className="transition-colors hover:text-foreground">
+            <Link key={l.href} href={l.href} className="transition-colors hover:text-foreground">
               {l.label}
-            </a>
+            </Link>
           ))}
         </nav>
         <div className="flex items-center gap-2">

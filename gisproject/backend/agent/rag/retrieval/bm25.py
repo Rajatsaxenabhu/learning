@@ -6,7 +6,7 @@ class BM25Retriever:
 
     def __init__(self):
         self.documents: list[Document] = []
-        self.bm25 = None
+        self.bm25: BM25Okapi | None = None
 
     def add_documents(
         self,
@@ -17,18 +17,14 @@ class BM25Retriever:
 
         self.documents.extend(documents)
 
-        self._build()
-
     def set_documents(
         self,
         documents: list[Document],
     ):
         self.documents = list(documents)
+        self.build()
 
-        self._build()
-
-    def _build(self):
-
+    def build(self):
         if not self.documents:
             self.bm25 = None
             return
@@ -42,13 +38,17 @@ class BM25Retriever:
             tokenized_documents
         )
 
+    def clear(self):
+        self.documents.clear()
+        self.bm25 = None
+
     def search(
         self,
         query: str,
         k: int = 5,
     ) -> list[Document]:
 
-        if not self.bm25:
+        if self.bm25 is None:
             return []
 
         tokens = query.lower().split()

@@ -97,7 +97,7 @@ class WebRAG:
             chunk_overlap=150,
         )
 
-        self.embedding_service = EmbeddingService()
+        self.embedding_service = EmbeddingService(mode="http")
 
         self.vector_store = VectorStore(
             embeddings=self.embedding_service.embeddings,

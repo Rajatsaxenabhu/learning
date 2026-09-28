@@ -1,3 +1,5 @@
+import anyio
+
 from langchain_core.documents import Document
 
 
@@ -11,26 +13,41 @@ class HybridRetriever:
         self.vector_store = vector_store
         self.bm25_retriever = bm25_retriever
 
-    def search(
+    async def search(
         self,
         query: str,
         k: int = 5,
         fetch_k: int = 10,
     ) -> list[Document]:
 
-        dense_docs = self.vector_store.search(
-            query=query,
-            k=fetch_k,
-        )
+        dense_docs = None
+        bm25_docs = None
 
-        bm25_docs = self.bm25_retriever.search(
-            query=query,
-            k=fetch_k,
-        )
+        async def search_dense():
+            nonlocal dense_docs
+
+            dense_docs = await anyio.to_thread.run_sync(
+                self.vector_store.search,
+                query,
+                fetch_k,
+            )
+
+        async def search_bm25():
+            nonlocal bm25_docs
+
+            bm25_docs = await anyio.to_thread.run_sync(
+                self.bm25_retriever.search,
+                query,
+                fetch_k,
+            )
+
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(search_dense)
+            tg.start_soon(search_bm25)
 
         return self._rrf(
-            dense_docs=dense_docs,
-            bm25_docs=bm25_docs,
+            dense_docs=dense_docs or [],
+            bm25_docs=bm25_docs or [],
             k=k,
         )
 
@@ -92,7 +109,6 @@ class HybridRetriever:
     def _document_key(
         doc: Document,
     ):
-
         source = doc.metadata.get(
             "source",
             "",

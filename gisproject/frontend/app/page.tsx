@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { Reveal } from '@/components/home/Reveal'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import { Navbar } from '@/components/home/Navbar'
 import { MapPreview } from '@/components/home/MapPreview'
 import { Features, HowItWorks, Tools } from '@/components/home/Sections'
@@ -21,12 +23,12 @@ export default function Home() {
             aria-hidden
             className="pointer-events-none absolute -top-40 left-1/4 size-[36rem] rounded-full bg-emerald-500/20 blur-3xl"
           />
-          <div className="relative grid w-full items-center gap-12 px-4 py-16 sm:px-8 lg:grid-cols-[4fr_7fr] lg:gap-16 lg:px-16 lg:py-24">
+          <div className="relative grid w-full items-center gap-10 px-4 py-12 sm:px-8 lg:grid-cols-[4fr_7fr] lg:gap-16 lg:px-16 lg:py-16">
             <div className="text-center lg:text-left">
-              <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-background/60 px-3 py-1 font-mono text-xs text-muted-foreground backdrop-blur">
+              <Badge variant="outline" className="mb-6 h-auto gap-2 bg-background/60 px-3 py-1 font-mono text-xs backdrop-blur">
                 <span className="size-1.5 rounded-full bg-emerald-500" />
                 MCP + agentic AI for GIS
-              </span>
+              </Badge>
               <h1 className="text-4xl font-semibold tracking-tight text-balance md:text-6xl xl:text-7xl">
                 Ask questions.{' '}
                 <span className="bg-gradient-to-r from-emerald-500 to-sky-500 bg-clip-text text-transparent">
@@ -46,7 +48,7 @@ export default function Home() {
               </div>
               <dl className="mt-10 flex justify-center gap-8 lg:justify-start">
                 {[
-                  ['15+', 'GIS tools'],
+                  ['39', 'GIS tools'],
                   ['MCP', 'open protocol'],
                   ['Live', 'streamed steps'],
                 ].map(([v, l]) => (
@@ -67,15 +69,19 @@ export default function Home() {
         <HowItWorks />
         <Tools />
 
-        <section className="w-full px-4 py-20 sm:px-8 lg:px-16">
-          <Reveal className="rounded-3xl border border-border bg-gradient-to-br from-emerald-500/15 via-card to-sky-500/10 px-6 py-20 text-center">
-            <h2 className="text-3xl font-semibold tracking-tight">Start your first analysis</h2>
-            <p className="mx-auto mt-3 max-w-md text-muted-foreground">
-              Upload a layer, ask a question, and watch the agent work.
-            </p>
-            <Button size="lg" className="mt-6" nativeButton={false} render={<Link href="/chat" />}>
-              Launch app <ArrowRight />
-            </Button>
+        <section className="w-full px-4 py-14 sm:px-8 lg:px-16">
+          <Reveal>
+            <Card className="rounded-3xl bg-gradient-to-br from-emerald-500/15 via-card to-sky-500/10 py-14 ring-foreground/10">
+              <CardContent className="text-center">
+                <h2 className="text-3xl font-semibold tracking-tight">Start your first analysis</h2>
+                <p className="mx-auto mt-3 max-w-md text-muted-foreground">
+                  Upload a layer, ask a question, and watch the agent work.
+                </p>
+                <Button size="lg" className="mt-6" nativeButton={false} render={<Link href="/chat" />}>
+                  Launch app <ArrowRight />
+                </Button>
+              </CardContent>
+            </Card>
           </Reveal>
         </section>
       </main>
