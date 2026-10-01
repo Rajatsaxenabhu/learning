@@ -52,7 +52,7 @@ class EmbeddingService(Embeddings):
     def __init__(
         self,
         mode: str = "local",
-        model_name: str = "/home/app/media/models/bge-large-en-v1.5",
+        model_name: str = "/home/app/media/models/bge-base-en-v1.5",
         device: str = "cuda",
         base_url: str = "http://172.16.32.50:7070",
     ):

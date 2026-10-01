@@ -36,15 +36,11 @@ class WebRAG:
         self,
         collection_name: str = "web_rag_test",
         qdrant_url: str = "http://qdrant:6333",
-        reranker_model: str = "BAAI/bge-reranker-base",
-        reranker_device="cuda",
         checkpointer=None,
     ):
 
         self.collection_name = collection_name
         self.qdrant_url = qdrant_url
-        self.reranker_model = reranker_model
-        self.reranker_device = reranker_device
         self.checkpointer = checkpointer
 
         self.graph = None
@@ -97,7 +93,7 @@ class WebRAG:
             chunk_overlap=150,
         )
 
-        self.embedding_service = EmbeddingService(mode="http")
+        self.embedding_service = EmbeddingService(mode="local")
 
         self.vector_store = VectorStore(
             embeddings=self.embedding_service.embeddings,
@@ -108,8 +104,7 @@ class WebRAG:
         self.bm25_retriever = BM25Retriever()
 
         self.reranker = Reranker(
-            model_name=self.reranker_model,
-            device=self.reranker_device,
+            mode="local"
         )
 
         self.rewriter = QueryRewriter(
