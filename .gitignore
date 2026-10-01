@@ -67,3 +67,7 @@ gisproject/backend/logs/
 *.shx
 *.dbf
 *.geojson
+
+# GEE service account keys
+gee-key*.json
+gisproject/backend/server/geemcp/credentials

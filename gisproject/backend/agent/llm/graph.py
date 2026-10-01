@@ -17,6 +17,8 @@ from langgraph.graph import (
 from langgraph.prebuilt import ToolNode
 from langgraph.types import interrupt
 
+import logging
+
 from agent.llm.model import model
 from agent.llm.state import AgentState
 from agent.llm.web_rag_node import make_web_rag_node
@@ -35,7 +37,7 @@ from agent.service.runtime import (
 )
 
 
-MCP_SERVER_NAME = "gis_local"
+logger = logging.getLogger("slcr.app")
 
 WEB_RAG_TOOL_NAME = "web_rag"
 
@@ -520,7 +522,7 @@ def route_after_tools(
 
     if source in {
         "runtime",
-        "gis_mcp",
+        "mcp",
     }:
         return "llm"
 
@@ -608,10 +610,21 @@ async def build_graph(
     checkpointer=None,
 ):
 
-    mcp_tools = await discover_tools(
-        mcp_manager,
-        MCP_SERVER_NAME,
-    )
+    mcp_tools = []
+
+    for server_name in mcp_manager.names():
+        server_tools = await discover_tools(
+            mcp_manager,
+            server_name,
+        )
+
+        logger.info(
+            "MCP server '%s' tools: %s",
+            server_name,
+            [tool.name for tool in server_tools],
+        )
+
+        mcp_tools.extend(server_tools)
 
     knowledge_tool = create_knowledge_tool(
         knowledge_retriever

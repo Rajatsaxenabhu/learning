@@ -1,8 +1,10 @@
 import json
 import re
+import time
 from pathlib import Path
 from typing import Any
 
+from app.conf.logging.agentlog import logger
 from app.conf.redis.redis_async_manager import AsyncRedisManager
 from app.conf.settings import Settings
 
@@ -10,7 +12,7 @@ from pydantic import create_model, Field
 from langchain_core.tools import StructuredTool, ToolException
 
 
-DATASET_ID_RE = re.compile(r"^ds_[0-9a-f]{12}$")
+DATASET_ID_RE =re.compile(r"^ds_[0-9a-f]{12}$")
 
 
 async def resolve_dataset_args(kwargs: dict[str, Any]) -> dict[str, Any]:
@@ -50,6 +52,34 @@ def is_read_only(mcp_tool) -> bool:
     )
 
 
+JSON_TYPES = {
+    "string": str,
+    "integer": int,
+    "number": float,
+    "boolean": bool,
+    "array": list,
+    "object": dict,
+}
+
+
+def json_type(definition: dict[str, Any]):
+    if "$ref" in definition:
+        return dict
+
+    types = definition.get("type")
+
+    if types is None:
+        for option in definition.get("anyOf", []):
+            if option.get("type") != "null":
+                return json_type(option)
+        return str
+
+    if isinstance(types, list):
+        types = next((t for t in types if t != "null"), "string")
+
+    return JSON_TYPES.get(types, str)
+
+
 def create_args_schema(mcp_tool):
     schema = mcp_tool.input_schema
 
@@ -78,7 +108,7 @@ def create_args_schema(mcp_tool):
 
     for name, definition in properties.items():
 
-        field_type = str
+        field_type = json_type(definition)
 
         fields[name] = (
             field_type
@@ -121,13 +151,37 @@ def create_mcp_tool(
             server_name
         )
 
-        result = await client.call_tool(
+        logger.info(
+            "LLM tool call -> server=%s tool=%s args=%s",
+            server_name,
             mcp_tool.name,
-            {
-                "payload": await resolve_dataset_args(
-                    kwargs
-                ),
-            },
+            str(kwargs)[:300],
+        )
+        start = time.perf_counter()
+
+        try:
+            result = await client.call_tool(
+                mcp_tool.name,
+                {
+                    "payload": await resolve_dataset_args(
+                        kwargs
+                    ),
+                },
+            )
+        except Exception:
+            logger.exception(
+                "Tool failed: server=%s tool=%s",
+                server_name,
+                mcp_tool.name,
+            )
+            raise
+
+        logger.info(
+            "Tool done: server=%s tool=%s error=%s %.2fs",
+            server_name,
+            mcp_tool.name,
+            result.is_error,
+            time.perf_counter() - start,
         )
 
         if result.structured_content is not None:
@@ -162,7 +216,7 @@ def create_mcp_tool(
         args_schema=args_schema,
         metadata={
             "read_only": is_read_only(mcp_tool),
-            "source": "gis_mcp",
+            "source": "mcp",
         },
     )
 

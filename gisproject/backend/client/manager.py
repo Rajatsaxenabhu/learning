@@ -27,14 +27,15 @@ class MCPClientManager:
         exc_value,
         traceback,
     ):
-        for client in self._clients.values():
-            await client.__aexit__(
-                exc_type,
-                exc_value,
-                traceback,
-            )
-
-        self._clients.clear()
+        try:
+            for client in reversed(list(self._clients.values())):
+                await client.__aexit__(
+                    exc_type,
+                    exc_value,
+                    traceback,
+                )
+        finally:
+            self._clients.clear()
 
     def get(self, name: str) -> MCPClient:
         client = self._clients.get(name)

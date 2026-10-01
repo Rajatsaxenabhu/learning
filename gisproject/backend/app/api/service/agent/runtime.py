@@ -1,7 +1,7 @@
 from agent.llm.graph import build_graph
 from agent.rag.main import WebRAG
 from agent.service.knowledge import create_knowledge_retriever
-from client.config import GIS_STDIO_SERVER
+from client.config import GIS_STDIO_SERVER,GEE_STDIO_SERVER
 from client.manager import MCPClientManager
 from langgraph.checkpoint.memory import InMemorySaver
 
@@ -13,7 +13,7 @@ class AgentRuntime:
         self.checkpointer = InMemorySaver()
 
         self.mcp = MCPClientManager(
-            [GIS_STDIO_SERVER]
+            [GIS_STDIO_SERVER,GEE_STDIO_SERVER]
         )
 
         self.web_rag = WebRAG(

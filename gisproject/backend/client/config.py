@@ -18,6 +18,15 @@ GIS_STDIO_SERVER = MCPServerConfig(
     ),
 )
 
+GEE_STDIO_SERVER = MCPServerConfig(
+    name="gee_local",
+    transport=StdioServerParameters(
+        command="uv",
+        args=["run", "-m", "server.geemcp.stdiomain"],
+    ),
+)
+
+
 GIS_SERVER = MCPServerConfig(
     name="gis",
     transport="http://localhost:8000/mcp",
