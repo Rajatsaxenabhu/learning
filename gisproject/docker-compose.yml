@@ -45,8 +45,8 @@ services:
       - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN:-}
 
     command:
-    - --model=Jackrong/Qwen3.5-4B-Claude-4.6-Opus-Reasoning-Distilled-GGUF:Q8_0
-    - --served-model-name=qwen3.5-4b-distill
+    - --model=Qwen/Qwen3-4B-Thinking-2507-FP8
+    - --served-model-name=qwen3-4b-thinking
     - --max-model-len=16000
     - --gpu-memory-utilization=0.70
     - --enable-auto-tool-choice

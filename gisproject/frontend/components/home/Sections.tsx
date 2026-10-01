@@ -108,9 +108,8 @@ const stack = [
 ]
 
 const hardware = [
-  { icon: Gpu, role: 'LLM serving', card: 'RTX 5070 Ti', body: 'Runs the vLLM server that hosts the agent’s language model.' },
-  { icon: Gpu, role: 'Embeddings', card: 'NVIDIA T400', body: 'Dedicated to embedding generation for retrieval, kept off the main GPU.' },
-  { icon: Cpu, role: 'CPU', card: 'Intel Core i9', body: 'Handles the API, GIS processing and everything outside the GPUs.' },
+  { icon: Gpu, role: 'LLM serving', card: 'RTX 5070 Ti', body: 'Runs vLLM hosting Qwen3-4B-Thinking-2507 (FP8), plus embedding and reranking, all on a single GPU.' },
+  { icon: Cpu, role: 'CPU', card: 'Intel Core i9', body: 'Handles the API, GIS processing and everything outside the GPU.' },
   { icon: MemoryStick, role: 'Memory', card: '32 GB RAM', body: 'Headroom for Postgres, Redis, Qdrant and raster processing running side by side.' },
 ]
 
@@ -119,8 +118,8 @@ const archNodes = [
   { icon: Layers, title: 'Next.js + FastAPI', body: 'The request streams in over the API.' },
   { icon: Bot, title: 'LangGraph agent', body: 'Plans the steps and picks the right tools.' },
   { icon: Plug, title: 'MCP tool server', body: 'Runs the vector & raster GIS operations.' },
-  { icon: Gpu, title: 'vLLM · RTX 5070 Ti', body: 'Reasons over each tool result and decides what’s next.' },
-  { icon: Database, title: 'Postgres · Redis · Qdrant', body: 'Persists layers and retrieves context (embedded on the T400).' },
+  { icon: Gpu, title: 'vLLM · RTX 5070 Ti', body: 'Qwen3-4B-Thinking reasons over each tool result and decides what’s next.' },
+  { icon: Database, title: 'Postgres · Redis · Qdrant', body: 'Persists layers and retrieves context (embedded on the same GPU).' },
   { icon: MapIcon, title: 'Live map', body: 'The result streams back as a GeoJSON layer.' },
 ]
 
