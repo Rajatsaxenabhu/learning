@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'react-toastify'
+import { useMapStore } from '@/store/map'
 import { useWebSocket } from '@/services/websocket'
+import type { MapLayerData } from '@/components/map/layers'
 import type { Message } from './types'
 
 /** Owns the chat transcript: turns websocket frames into messages, token usage and tool approvals. */
@@ -53,6 +55,11 @@ export function useChatSocket(url: string) {
         setStreaming(false)
         add('error', String(data.detail ?? 'Something went wrong'))
         setLoading(false)
+      } else if (data.type === 'map_layer') {
+        useMapStore.getState().show(
+          (data.layers as MapLayerData[]) ?? [],
+          (data.extent as [number, number, number, number] | null) ?? null,
+        )
       } else if (data.type === 'tool_approval') {
         setApproval(data)
       }

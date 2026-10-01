@@ -7,15 +7,18 @@ import View from 'ol/View'
 import TileLayer from 'ol/layer/Tile'
 import ImageLayer from 'ol/layer/Image'
 import OSM from 'ol/source/OSM'
+import { transformExtent } from 'ol/proj'
+import type BaseLayer from 'ol/layer/Base'
 import ImageWMS from 'ol/source/ImageWMS'
 import { cn } from '@/lib/utils'
+import { createOverlay, type MapLayerData } from './layers'
 import { DEFAULT_LAYERS, INDIA_EXTENT, WMS_URL, outlineSld, type WmsLayer } from './wms'
 
 type Props = {
-  /** WMS layers drawn over the basemap. Defaults to the state boundaries. */
   layers?: WmsLayer[]
-  /** Initial extent [minX, minY, maxX, maxY] in EPSG:3857. */
   extent?: [number, number, number, number]
+  overlays?: MapLayerData[]
+  fitTo?: [number, number, number, number] | null
   basemap?: boolean
   className?: string
 }
@@ -40,13 +43,12 @@ function createWmsLayer(config: WmsLayer) {
   })
 }
 
-/** Reusable OpenLayers map: OSM basemap plus any number of WMS layers. */
-export function OlMap({ layers = DEFAULT_LAYERS, extent = INDIA_EXTENT, basemap = true, className }: Props) {
+export function OlMap({ layers = DEFAULT_LAYERS, extent = INDIA_EXTENT, overlays, fitTo, basemap = true, className }: Props) {
   const target = useRef<HTMLDivElement>(null)
   const mapRef = useRef<Map | null>(null)
   const wmsLayers = useRef<ImageLayer<ImageWMS>[]>([])
+  const overlayLayers = useRef<BaseLayer[]>([])
 
-  // create the map once
   useEffect(() => {
     if (!target.current) return
     const map = new Map({
@@ -58,7 +60,6 @@ export function OlMap({ layers = DEFAULT_LAYERS, extent = INDIA_EXTENT, basemap 
     map.updateSize()
     map.getView().fit(extent, { size: map.getSize() })
     mapRef.current = map
-    // keep the canvas sized when the surrounding layout changes
     const observer = new ResizeObserver(() => map.updateSize())
     observer.observe(target.current)
     return () => {
@@ -66,12 +67,11 @@ export function OlMap({ layers = DEFAULT_LAYERS, extent = INDIA_EXTENT, basemap 
       map.setTarget(undefined)
       mapRef.current = null
       wmsLayers.current = []
+      overlayLayers.current = []
     }
-    // the map is created once; layers are synced by the effect below
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // keep the WMS layers in sync with props
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
@@ -79,6 +79,26 @@ export function OlMap({ layers = DEFAULT_LAYERS, extent = INDIA_EXTENT, basemap 
     wmsLayers.current = layers.map(createWmsLayer)
     wmsLayers.current.forEach((l) => map.addLayer(l))
   }, [layers])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    overlayLayers.current.forEach((l) => map.removeLayer(l))
+    const sorted = [...(overlays ?? [])].sort((a, b) => Number(b.type === 'xyz') - Number(a.type === 'xyz'))
+    overlayLayers.current = sorted.map(createOverlay).filter((l): l is BaseLayer => l !== null)
+    overlayLayers.current.forEach((l) => map.addLayer(l))
+  }, [overlays])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !fitTo) return
+    map.getView().fit(transformExtent(fitTo, 'EPSG:4326', 'EPSG:3857'), {
+      size: map.getSize(),
+      padding: [24, 24, 24, 24],
+      maxZoom: 14,
+      duration: 500,
+    })
+  }, [fitTo])
 
   return <div ref={target} className={cn('size-full min-h-64 bg-muted', className)} />
 }

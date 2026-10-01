@@ -1,9 +1,23 @@
-from datetime import datetime, timezone
-
 import ee
+from mcp.server.mcpserver.exceptions import ToolError
 
 from server.geemcp.config.logging import logger
+from server.geemcp.operations.common import (
+    build_collection,
+    extent_of,
+    footprint,
+    profile,
+    resolve_collection,
+    tile_url,
+    to_date,
+)
 from server.geemcp.schemas.imagery import (
+    BandInfo,
+    FilterCollectionRequest,
+    ImageBandsResult,
+    ImageMetadata,
+    ImageMetadataResult,
+    ImageRequest,
     ImageSummary,
     MapLayer,
     MapPayload,
@@ -13,94 +27,39 @@ from server.geemcp.schemas.imagery import (
 )
 
 
-DEPRECATED_COLLECTIONS = {
-    "COPERNICUS/S2_SR": "COPERNICUS/S2_SR_HARMONIZED",
-    "COPERNICUS/S2": "COPERNICUS/S2_HARMONIZED",
-}
+METADATA_KEYS = (
+    "SPACECRAFT_NAME",
+    "SPACECRAFT_ID",
+    "PRODUCT_ID",
+    "LANDSAT_PRODUCT_ID",
+    "MGRS_TILE",
+    "WRS_PATH",
+    "WRS_ROW",
+    "SENSING_ORBIT_NUMBER",
+    "PROCESSING_BASELINE",
+    "SUN_ELEVATION",
+    "MEAN_SOLAR_ZENITH_ANGLE",
+)
 
 
-SENTINEL2_RGB = {
-    "bands": ["B4", "B3", "B2"],
-    "min": 0,
-    "max": 3000,
-}
-
-
-def _to_date(millis: int | None) -> str | None:
-
-    if millis is None:
-        return None
-
-    return datetime.fromtimestamp(
-        millis / 1000,
-        tz=timezone.utc,
-    ).strftime("%Y-%m-%d")
-
-
-def _footprint(feature: dict) -> dict | None:
-
-    ring = feature.get("properties", {}).get("system:footprint")
-
-    if not ring:
-        return feature.get("geometry")
-
-    return {
-        "type": "Polygon",
-        "coordinates": [ring["coordinates"]],
-    }
-
-
-def _tile_url(image_id: str) -> str:
-
-    map_id = ee.Image(image_id).getMapId(SENTINEL2_RGB)
-
-    return map_id["tile_fetcher"].url_format
-
-
-def search_satellite_images(
-    request: SatelliteSearchRequest,
+def _search(
+    collection_id: str,
+    images: ee.ImageCollection,
+    limit: int,
+    bbox=None,
 ) -> SatelliteSearchResult:
 
-    bbox = request.bbox
+    known = profile(collection_id)
 
-    request.collection = DEPRECATED_COLLECTIONS.get(
-        request.collection,
-        request.collection,
-    )
+    cloud_property = known["cloud"] if known else None
 
-    geometry = ee.Geometry.Rectangle(
-        [
-            bbox.min_lon,
-            bbox.min_lat,
-            bbox.max_lon,
-            bbox.max_lat,
-        ]
-    )
+    count = images.size().getInfo()
 
-    collection = (
-        ee.ImageCollection(request.collection)
-        .filterBounds(geometry)
-        .filterDate(
-            request.start_date,
-            request.end_date,
-        )
-        .filter(
-            ee.Filter.lte(
-                "CLOUDY_PIXEL_PERCENTAGE",
-                request.max_cloud_percentage,
-            )
-        )
-        .sort("system:time_start")
-    )
+    features = images.limit(limit).getInfo()["features"]
 
-    count = collection.size().getInfo()
-
-    features = collection.limit(
-        request.limit
-    ).getInfo()["features"]
-
-    images = []
+    summaries = []
     layers = []
+    footprints = []
 
     for feature in features:
 
@@ -108,47 +67,52 @@ def search_satellite_images(
 
         image_id = feature["id"]
 
-        images.append(
+        summaries.append(
             ImageSummary(
                 id=image_id,
-                date=_to_date(
+                date=to_date(
                     properties.get("system:time_start")
                 ),
-                cloud_percentage=properties.get(
-                    "CLOUDY_PIXEL_PERCENTAGE"
-                ),
+                cloud_percentage=properties.get(cloud_property),
             )
         )
 
-        footprint = _footprint(feature)
+        outline = footprint(feature)
 
-        if footprint:
+        if outline:
+            footprints.append(outline)
             layers.append(
                 MapLayer(
                     id=f"footprint:{image_id}",
                     type="geojson",
                     name=image_id.rsplit("/", 1)[-1],
-                    geojson=footprint,
+                    geojson=outline,
                 )
             )
 
     shown = None
 
-    best = min(
-        (i for i in images if i.cloud_percentage is not None),
-        key=lambda i: i.cloud_percentage,
-        default=None,
-    )
+    if summaries and known:
 
-    if best and request.collection.startswith("COPERNICUS/S2"):
+        best = min(
+            summaries,
+            key=lambda i: (
+                i.cloud_percentage
+                if i.cloud_percentage is not None
+                else float("inf")
+            ),
+        )
 
         try:
             layers.append(
                 MapLayer(
                     id=f"tiles:{best.id}",
                     type="xyz",
-                    name=f"{best.date} ({best.cloud_percentage:.1f}% cloud)",
-                    url=_tile_url(best.id),
+                    name=f"{best.date}",
+                    url=tile_url(
+                        ee.Image(best.id),
+                        known["vis"],
+                    ),
                 )
             )
             shown = best.id
@@ -158,20 +122,170 @@ def search_satellite_images(
                 "could not build tiles for %s", best.id
             )
 
+    extent = (
+        [bbox.min_lon, bbox.min_lat, bbox.max_lon, bbox.max_lat]
+        if bbox
+        else extent_of(footprints)
+    )
+
     return SatelliteSearchResult(
         summary=SatelliteSearchSummary(
-            collection=request.collection,
+            collection=collection_id,
             count=count,
-            images=images,
+            images=summaries,
             shown_on_map=shown,
         ),
         map=MapPayload(
             layers=layers,
-            extent=[
-                bbox.min_lon,
-                bbox.min_lat,
-                bbox.max_lon,
-                bbox.max_lat,
-            ],
+            extent=extent,
         ),
+    )
+
+
+def search_satellite_images(
+    request: SatelliteSearchRequest,
+) -> SatelliteSearchResult:
+
+    collection = resolve_collection(request.collection)
+
+    images = build_collection(
+        collection,
+        bbox=request.bbox,
+        start_date=request.start_date,
+        end_date=request.end_date,
+        max_cloud_percentage=request.max_cloud_percentage,
+    )
+
+    return _search(
+        collection,
+        images,
+        request.limit,
+        request.bbox,
+    )
+
+
+def filter_image_collection(
+    request: FilterCollectionRequest,
+) -> SatelliteSearchResult:
+
+    collection = resolve_collection(request.collection)
+
+    images = build_collection(
+        collection,
+        bbox=request.bbox,
+        start_date=request.start_date,
+        end_date=request.end_date,
+        max_cloud_percentage=request.max_cloud_percentage,
+        property_filters=request.property_filters,
+    )
+
+    return _search(
+        collection,
+        images,
+        request.limit,
+        request.bbox,
+    )
+
+
+def get_image_metadata(
+    request: ImageRequest,
+) -> ImageMetadataResult:
+
+    image = ee.Image(request.image_id)
+
+    try:
+        info = image.getInfo()
+    except ee.EEException as exc:
+        raise ToolError(
+            f"Could not load image {request.image_id}: {exc}"
+        ) from exc
+
+    properties = info.get("properties", {})
+
+    bands = info.get("bands", [])
+
+    known = profile(request.image_id)
+
+    ring = footprint(info)
+
+    bounds = extent_of([ring]) if ring else None
+
+    layers = []
+
+    if ring:
+        layers.append(
+            MapLayer(
+                id=f"footprint:{request.image_id}",
+                type="geojson",
+                name=request.image_id.rsplit("/", 1)[-1],
+                geojson=ring,
+            )
+        )
+
+    return ImageMetadataResult(
+        summary=ImageMetadata(
+            id=request.image_id,
+            date=to_date(properties.get("system:time_start")),
+            cloud_percentage=(
+                properties.get(known["cloud"]) if known else None
+            ),
+            crs=bands[0].get("crs") if bands else None,
+            bounds=bounds,
+            band_count=len(bands),
+            properties={
+                key: properties[key]
+                for key in METADATA_KEYS
+                if key in properties
+            },
+        ),
+        map=MapPayload(
+            layers=layers,
+            extent=bounds,
+        ),
+    )
+
+
+def get_image_bands(
+    request: ImageRequest,
+) -> ImageBandsResult:
+
+    try:
+        info = ee.Image(request.image_id).getInfo()
+    except ee.EEException as exc:
+        raise ToolError(
+            f"Could not load image {request.image_id}: {exc}"
+        ) from exc
+
+    known = profile(request.image_id)
+
+    wavelengths = known["wavelengths"] if known else {}
+
+    bands = []
+
+    for band in info.get("bands", []):
+
+        crs = band.get("crs")
+
+        transform = band.get("crs_transform")
+
+        projected = bool(crs) and crs != "EPSG:4326"
+
+        bands.append(
+            BandInfo(
+                name=band["id"],
+                data_type=band.get("data_type", {}).get(
+                    "precision", "unknown"
+                ),
+                scale_m=(
+                    abs(transform[0])
+                    if projected and transform
+                    else None
+                ),
+                wavelength_nm=wavelengths.get(band["id"]),
+            )
+        )
+
+    return ImageBandsResult(
+        image_id=request.image_id,
+        bands=bands,
     )

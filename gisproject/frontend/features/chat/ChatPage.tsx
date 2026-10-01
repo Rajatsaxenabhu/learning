@@ -2,6 +2,7 @@
 
 import { OlMap } from '@/components/map/OlMap'
 import { cn } from '@/lib/utils'
+import { useMapStore } from '@/store/map'
 import { useSessionStore } from '@/store/session'
 import { ChatHeader } from './ChatHeader'
 import { ChatPanel } from './ChatPanel'
@@ -14,10 +15,11 @@ function wsUrlFor(sessionId: string): string {
   return `${process.env.NEXT_PUBLIC_WS_URL}/api/ws/start/${sessionId}`
 }
 
-/** Main layout: navbar on top (always visible), map on the left, chat on the right. */
 export function ChatPage() {
   const { status, message, retry } = useReadySession()
   const sessionId = useSessionStore((s) => s.sessionId)
+  const mapLayers = useMapStore((s) => s.layers)
+  const mapExtent = useMapStore((s) => s.extent)
   const chat = useChatSocket(status === 'ready' && sessionId ? wsUrlFor(sessionId) : '')
 
   return (
@@ -29,7 +31,7 @@ export function ChatPage() {
       ) : (
         <main className="grid min-h-0 flex-1 grid-rows-[35%_1fr] border-t border-border md:grid-cols-[3fr_2fr] md:grid-rows-1">
           <section className="min-h-0 min-w-0 border-b border-border md:border-r md:border-b-0">
-            <OlMap />
+            <OlMap overlays={mapLayers} fitTo={mapExtent} />
           </section>
           <section className="flex min-h-0 min-w-0 flex-col">
             <ChatPanel chat={chat} />

@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { Loader2, RefreshCw, ServerCrash } from 'lucide-react'
+import { RefreshCw, ServerCrash } from 'lucide-react'
+import { GeoLoader } from '@/components/layout/GeoLoader'
 import { Button } from '@/components/ui/button'
 import type { Status } from './types'
 
@@ -9,8 +10,7 @@ export function StatusScreen({ status, message, onRetry }: { status: Status; mes
       <main className="flex flex-1 flex-col items-center justify-center gap-4 px-4 text-center">
         {status === 'checking' ? (
           <>
-            <Loader2 className="size-8 animate-spin text-emerald-500" />
-            <p className="text-muted-foreground">Checking that the model is ready…</p>
+            <GeoLoader />
           </>
         ) : (
           <>

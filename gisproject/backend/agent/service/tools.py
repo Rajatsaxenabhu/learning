@@ -8,6 +8,7 @@ from app.conf.logging.agentlog import logger
 from app.conf.redis.redis_async_manager import AsyncRedisManager
 from app.conf.settings import Settings
 
+from langgraph.config import get_stream_writer
 from pydantic import create_model, Field
 from langchain_core.tools import StructuredTool, ToolException
 
@@ -184,11 +185,29 @@ def create_mcp_tool(
             time.perf_counter() - start,
         )
 
-        if result.structured_content is not None:
+        content = result.structured_content
+
+        if (
+            not result.is_error
+            and isinstance(content, dict)
+            and "summary" in content
+            and "map" in content
+        ):
+
+            get_stream_writer()(
+                {
+                    "type": "map_layer",
+                    **content["map"],
+                }
+            )
 
             text = json.dumps(
-                result.structured_content
+                content["summary"]
             )
+
+        elif content is not None:
+
+            text = json.dumps(content)
 
         else:
 

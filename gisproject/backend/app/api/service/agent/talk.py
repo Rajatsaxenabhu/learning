@@ -38,6 +38,11 @@ You have access to five types of capabilities:
      get_current_datetime first.
    - Report only what the tool returns. Never make
      up image IDs, dates, or cloud percentages.
+   - The map is updated automatically with the
+     footprints of the images found, plus a preview
+     of the clearest one (shown_on_map). Tell the
+     user the results are on the map. Never output
+     coordinates, tile URLs, or GeoJSON yourself.
 
 4. Internal GIS knowledge
    Use the internal knowledge base for stable GIS
@@ -99,6 +104,12 @@ TokenCallback = Callable[
 ]
 
 
+MapCallback = Callable[
+    [dict],
+    Awaitable[None],
+]
+
+
 class UserAgent:
 
     def __init__(
@@ -138,6 +149,7 @@ class UserAgent:
         on_token: TokenCallback,
         approve_tools: ApprovalCallback,
         dataset: Dict[str, Any] | None = None,
+        on_map: MapCallback | None = None,
     ) -> int:
 
         used = 0
@@ -238,6 +250,15 @@ class UserAgent:
                 elif mode == "custom":
 
                     if (
+                        on_map
+                        and isinstance(data, dict)
+                        and data.get("type")
+                        == "map_layer"
+                    ):
+
+                        await on_map(data)
+
+                    elif (
                         isinstance(data, dict)
                         and data.get("type")
                         == "answer_token"

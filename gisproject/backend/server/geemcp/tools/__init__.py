@@ -1,1 +1,1 @@
-from . import imagery
+from . import imagery, collection

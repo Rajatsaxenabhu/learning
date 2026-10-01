@@ -139,6 +139,13 @@ class ChatConnection:
             }
         )
 
+    async def send_map(
+        self,
+        payload: dict,
+    ):
+
+        await self.broadcast(payload)
+
     async def answer(
         self,
         agent: UserAgent,
@@ -153,6 +160,7 @@ class ChatConnection:
                 self.send_token,
                 self.approve_tools,
                 dataset,
+                self.send_map,
             )
 
         except WebSocketDisconnect:

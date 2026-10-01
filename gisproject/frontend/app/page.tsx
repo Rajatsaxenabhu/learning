@@ -27,7 +27,7 @@ export default function Home() {
             <div className="text-center lg:text-left">
               <Badge variant="outline" className="mb-6 h-auto gap-2 bg-background/60 px-3 py-1 font-mono text-xs backdrop-blur">
                 <span className="size-1.5 rounded-full bg-emerald-500" />
-                MCP + agentic AI for GIS
+                MCP + agentic AI for GIS &amp; remote sensing
               </Badge>
               <h1 className="text-4xl font-semibold tracking-tight text-balance md:text-6xl xl:text-7xl">
                 Ask questions.{' '}
@@ -36,7 +36,7 @@ export default function Home() {
                 </span>
               </h1>
               <p className="mx-auto mt-6 max-w-xl text-lg text-balance text-muted-foreground lg:mx-0">
-                GeoAgent is an AI analyst that runs real GIS operations for you. Describe what you need, and it plans, executes and maps the result.
+                GeoAgent is an AI analyst that runs real GIS operations for you. Describe what you need, from a buffer to Sentinel-2 imagery, and it plans, executes and maps the result.
               </p>
               <div className="mt-8 flex flex-wrap justify-center gap-3 lg:justify-start">
                 <Button size="lg" className="h-11 px-6 text-base" nativeButton={false} render={<Link href="/chat" />}>
@@ -75,7 +75,7 @@ export default function Home() {
               <CardContent className="text-center">
                 <h2 className="text-3xl font-semibold tracking-tight">Start your first analysis</h2>
                 <p className="mx-auto mt-3 max-w-md text-muted-foreground">
-                  Upload a layer, ask a question, and watch the agent work.
+                  Upload a layer, ask for satellite imagery, and watch the agent work.
                 </p>
                 <Button size="lg" className="mt-6" nativeButton={false} render={<Link href="/chat" />}>
                   Launch app <ArrowRight />

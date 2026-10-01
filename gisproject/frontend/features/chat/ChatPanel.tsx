@@ -7,7 +7,6 @@ import { ChatComposer } from './ChatComposer'
 import { MessageList } from './MessageList'
 import type { useChatSocket } from './useChatSocket'
 
-/** Transcript + composer. The socket is owned by the parent so the navbar can show its connection state. */
 export function ChatPanel({ chat }: { chat: ReturnType<typeof useChatSocket> }) {
   const upload = useChunkedUpload()
   const [input, setInput] = useState('')

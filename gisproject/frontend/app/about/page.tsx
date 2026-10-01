@@ -31,8 +31,8 @@ export default function AboutPage() {
               The stack, the hardware and the person behind GeoAgent
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-              GeoAgent is a self-hosted GIS agent — an open protocol toolbox, a LangGraph brain, and hardware to run
-              it all on.
+              GeoAgent is a self-hosted GIS agent — an open protocol toolbox covering vector, raster and Google Earth
+              Engine imagery, a LangGraph brain, and hardware to run it all on.
             </p>
           </Reveal>
         </section>

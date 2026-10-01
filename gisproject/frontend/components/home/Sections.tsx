@@ -19,6 +19,9 @@ import {
   Gpu,
   MemoryStick,
   Map as MapIcon,
+  Satellite,
+  Image as ImageIcon,
+  Radar,
   ExternalLink,
 } from 'lucide-react'
 import { Reveal } from './Reveal'
@@ -52,7 +55,17 @@ const features: Item[] = [
   {
     icon: Layers,
     title: 'Results as layers',
-    body: 'Every output lands on the map as a GeoJSON layer you can inspect, toggle and download.',
+    body: 'Every output lands on the map as a layer you can inspect and toggle, right next to the chat.',
+  },
+  {
+    icon: Satellite,
+    title: 'Satellite imagery on demand',
+    body: 'Ask for Sentinel-2 scenes over any area and date range. The agent searches Google Earth Engine and filters by cloud cover.',
+  },
+  {
+    icon: MapIcon,
+    title: 'Live OpenLayers map',
+    body: 'Server-hosted WMS layers sit under the agent’s results, and the view zooms to wherever the answer is.',
   },
 ]
 
@@ -97,37 +110,48 @@ const toolGroups: Item[] = [
     title: 'Raster statistics',
     body: 'Summarize pixel values across a raster.',
   },
+  {
+    icon: Radar,
+    title: 'Satellite search',
+    body: 'Find Sentinel-2 scenes by area, dates and cloud cover through Google Earth Engine.',
+  },
+  {
+    icon: ImageIcon,
+    title: 'Imagery preview',
+    body: 'Scene footprints plus a true-colour preview of the clearest image, drawn on the map.',
+  },
 ]
 
 const stack = [
   { group: 'Frontend', items: ['Next.js', 'React', 'Tailwind CSS'] },
   { group: 'Agent & API', items: ['FastAPI', 'LangGraph', 'MCP'] },
   { group: 'GIS engine', items: ['GDAL', 'Shapely', 'PostGIS'] },
+  { group: 'Maps & imagery', items: ['OpenLayers', 'GeoServer', 'Google Earth Engine'] },
   { group: 'Data & retrieval', items: ['PostgreSQL', 'Redis', 'Qdrant'] },
   { group: 'Serving & infra', items: ['vLLM', 'Docker', 'Traefik'] },
 ]
 
 const hardware = [
-  { icon: Gpu, role: 'LLM serving', card: 'RTX 5070 Ti', body: 'Runs vLLM hosting Qwen3-4B-Thinking-2507 (FP8), plus embedding and reranking, all on a single GPU.' },
+  { icon: Gpu, role: 'LLM serving', card: 'RTX 5070 Ti', body: 'Runs vLLM hosting Qwen3-8B (FP8), plus embedding and reranking, all on a single GPU.' },
   { icon: Cpu, role: 'CPU', card: 'Intel Core i9', body: 'Handles the API, GIS processing and everything outside the GPU.' },
   { icon: MemoryStick, role: 'Memory', card: '32 GB RAM', body: 'Headroom for Postgres, Redis, Qdrant and raster processing running side by side.' },
 ]
 
 const archNodes = [
   { icon: MessageSquare, title: 'Browser', body: 'You ask a question or drop a layer on the map.' },
-  { icon: Layers, title: 'Next.js + FastAPI', body: 'The request streams in over the API.' },
+  { icon: Layers, title: 'Next.js + FastAPI', body: 'The request streams in over a websocket.' },
   { icon: Bot, title: 'LangGraph agent', body: 'Plans the steps and picks the right tools.' },
-  { icon: Plug, title: 'MCP tool server', body: 'Runs the vector & raster GIS operations.' },
-  { icon: Gpu, title: 'vLLM · RTX 5070 Ti', body: 'Qwen3-4B-Thinking reasons over each tool result and decides what’s next.' },
+  { icon: Plug, title: 'MCP tool server', body: 'Runs vector, raster and Google Earth Engine operations.' },
+  { icon: Gpu, title: 'vLLM · RTX 5070 Ti', body: 'Qwen3-8B reasons over each tool result and decides what’s next.' },
   { icon: Database, title: 'Postgres · Redis · Qdrant', body: 'Persists layers and retrieves context (embedded on the same GPU).' },
-  { icon: MapIcon, title: 'Live map', body: 'The result streams back as a GeoJSON layer.' },
+  { icon: MapIcon, title: 'Live map', body: 'Layers and imagery stream back and draw on the OpenLayers map.' },
 ]
 
 const steps = [
   { n: '01', title: 'Ask', body: 'Type a question or upload a GeoJSON layer.' },
   { n: '02', title: 'Plan', body: 'The agent picks the right GIS tools and their order.' },
   { n: '03', title: 'Execute', body: 'Tools run on the MCP server; every call is streamed back live.' },
-  { n: '04', title: 'See', body: 'Results are drawn on the map with a written explanation.' },
+  { n: '04', title: 'See', body: 'Layers and imagery appear on the map beside a written explanation.' },
 ]
 
 function Heading({ eyebrow, title }: { eyebrow: string; title: string }) {
@@ -163,7 +187,7 @@ export function Features() {
   return (
     <section id="features" className="w-full scroll-mt-16 px-4 py-14 sm:px-8 lg:px-16">
       <Heading eyebrow="Features" title="Spatial analysis without the GIS learning curve" />
-      <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {features.map((f, i) => (
           <FeatureCard key={f.title} item={f} delay={i * 100} />
         ))}
@@ -197,8 +221,8 @@ export function HowItWorks() {
 export function Tools() {
   return (
     <section id="tools" className="w-full scroll-mt-16 px-4 py-14 sm:px-8 lg:px-16">
-      <Heading eyebrow="MCP toolbox" title="Vector and raster tools the agent can call" />
-      <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <Heading eyebrow="MCP toolbox" title="Vector, raster and satellite tools the agent can call" />
+      <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {toolGroups.map((t, i) => (
           <FeatureCard key={t.title} item={t} delay={i * 100} />
         ))}
