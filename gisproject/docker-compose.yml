@@ -48,8 +48,11 @@ services:
     - --model=Qwen/Qwen3-8B
     - --served-model-name=qwen3-8b
     - --quantization=fp8
-    - --max-model-len=16000
-    - --gpu-memory-utilization=0.75
+    - --max-model-len=20000
+    - --gpu-memory-utilization=0.80
+    - --kv-cache-dtype=fp8
+    - --max-num-batched-tokens=4096
+    - --max-num-seqs=8
     - --enable-auto-tool-choice
     - --tool-call-parser=hermes
     - --reasoning-parser=qwen3

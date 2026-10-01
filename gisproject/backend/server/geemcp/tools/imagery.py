@@ -1,6 +1,9 @@
 
 from server.geemcp.server import mcp, READ_ONLY
-from server.geemcp.schemas.imagery import SatelliteSearchRequest
+from server.geemcp.schemas.imagery import (
+    SatelliteSearchRequest,
+    SatelliteSearchResult,
+)
 from server.geemcp.operations.imagery import (
     search_satellite_images,
 )
@@ -16,7 +19,7 @@ from server.geemcp.operations.imagery import (
 )
 def search_satellite_images_tool(
     payload: SatelliteSearchRequest,
-) -> dict:
+) -> SatelliteSearchResult:
 
     return search_satellite_images(payload)
 

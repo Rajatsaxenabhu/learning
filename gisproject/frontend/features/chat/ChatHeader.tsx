@@ -9,8 +9,8 @@ export function ChatHeader({ isConnected }: { isConnected: boolean }) {
   const setSession = useSessionStore((s) => s.setSession)
 
   return (
-    <header>
-      <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
+    <header className="shrink-0">
+      <div className="flex h-14 items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2.5 font-semibold tracking-tight">
           <span className="grid size-8 place-items-center rounded-full bg-gradient-to-br from-emerald-400 to-sky-400 text-white">
             <Compass className="size-4" />
