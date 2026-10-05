@@ -683,6 +683,7 @@ dependencies = [
     { name = "langchain-text-splitters" },
     { name = "langgraph" },
     { name = "langgraph-checkpoint-sqlite" },
+    { name = "langsmith" },
     { name = "mcp", extra = ["cli"] },
     { name = "numpy" },
     { name = "openai" },
@@ -691,6 +692,7 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "pyogrio" },
     { name = "pyproj" },
+    { name = "pyspellchecker" },
     { name = "python-decouple" },
     { name = "qdrant-client" },
     { name = "rank-bm25" },
@@ -723,6 +725,7 @@ requires-dist = [
     { name = "langchain-text-splitters", specifier = ">=1.1.2" },
     { name = "langgraph", specifier = ">=1.2.11" },
     { name = "langgraph-checkpoint-sqlite", specifier = ">=3.1.1" },
+    { name = "langsmith", specifier = ">=0.13.0" },
     { name = "mcp", extras = ["cli"], specifier = ">=2.2.0" },
     { name = "numpy", specifier = ">=2.0.0" },
     { name = "openai", specifier = ">=1.0.0" },
@@ -731,6 +734,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.15.0" },
     { name = "pyogrio", specifier = ">=0.13.0" },
     { name = "pyproj", specifier = ">=3.8.0" },
+    { name = "pyspellchecker", specifier = ">=0.9.0" },
     { name = "python-decouple", specifier = ">=3.8" },
     { name = "qdrant-client", specifier = ">=1.19.1" },
     { name = "rank-bm25", specifier = ">=0.2.2" },
@@ -2371,6 +2375,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ed/7a/faad58c948947b217fcf06f80d308fff27bab5730ad6c9cd4c35bcf8bc90/pyproj-3.8.0-cp315-cp315t-win32.whl", hash = "sha256:0ff22ad49d1f59e18a57384926aabcb0ee8bbe9213e5abe375fd18b1b6ace194", size = 6471511, upload-time = "2026-09-05T20:05:04.113Z" },
     { url = "https://files.pythonhosted.org/packages/cf/a8/5ed4f4042031e13a0fede12e81af1e4143102221c373f966a24f38b0d284/pyproj-3.8.0-cp315-cp315t-win_amd64.whl", hash = "sha256:d5a408b215ef98c9ae19e58ec512360b8ad9b25f8792138f983a58d159ac7157", size = 6940114, upload-time = "2026-09-05T20:05:05.737Z" },
     { url = "https://files.pythonhosted.org/packages/12/14/9c291ad92b565629cf4eacee72cbc8071ca8d93c9d719b47f304b1b2ea76/pyproj-3.8.0-cp315-cp315t-win_arm64.whl", hash = "sha256:bbf8a786ebfa9a904802dfde0e95e1325df8efbb573a19686c1937499a8f04e8", size = 6843958, upload-time = "2026-09-05T20:05:07.527Z" },
+]
+
+[[package]]
+name = "pyspellchecker"
+version = "0.9.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b9/70/58443d052adb868fee9fafb26553d482f2cc4d7c5ed5bb46846a7ce62a01/pyspellchecker-0.9.0.tar.gz", hash = "sha256:eb1a594161c84a4e67df7db1c269a3392a645bd50e4c82e1298892db0cdb0965", size = 7239784, upload-time = "2026-03-07T17:14:53.219Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/11/70/df4b8816f5e1aa8b46fbc2b1d104d8f5bc13ec92fb69310b35bc56ea7260/pyspellchecker-0.9.0-py3-none-any.whl", hash = "sha256:97eaed776e0854f69aafb723f6962b403099e50c9a1d9c05525c819f4b0f5d54", size = 7237077, upload-time = "2026-03-07T17:14:51.444Z" },
 ]
 
 [[package]]
