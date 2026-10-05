@@ -71,3 +71,6 @@ gisproject/backend/logs/
 # GEE service account keys
 gee-key*.json
 gisproject/backend/server/geemcp/credentials
+
+# local secrets
+gisproject/backend/fastdb.txt

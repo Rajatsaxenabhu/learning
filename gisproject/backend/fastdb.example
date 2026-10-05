@@ -10,12 +10,12 @@ POSTGRES_HOST=database
 POSTGRES_PORT=5432
 
 LLM_URL=http://vllm:8000
-TAVILY_API_KEY="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"
+TAVILY_API_KEY="<your-key>"
 TEMP_DIR= /home/app/temp
 LLM_MODEL="qwen3-8b"
 
 LANGSMITH_TRACING=true
 LANGSMITH_ENDPOINT=https://api.smith.langchain.com
-LANGSMITH_API_KEY="<your-langsmith-key>"
+LANGSMITH_API_KEY="<your-key>"
 LANGSMITH_PROJECT="geoagent"
 
