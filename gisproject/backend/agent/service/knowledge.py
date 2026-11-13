@@ -6,7 +6,7 @@ from agent.rag.retrieval.vectorstore import VectorStore
 
 def create_knowledge_retriever():
 
-    embeddings = EmbeddingService(mode="http")
+    embeddings = EmbeddingService(mode="local")
 
     vector_store = VectorStore(
         embeddings=embeddings,
